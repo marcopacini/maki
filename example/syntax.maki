@@ -1,0 +1,52 @@
+// Class definition
+class Cat
+{
+    var Name { get, set }
+    var Age
+}
+
+// Constructor definition
+fun Cat.New(name, age)
+{
+    self.Name = name
+    self.Age = age
+}
+
+// Method definition
+fun Cat.Meow()
+{
+    return "meowww!"
+}
+
+var maki = Cat.new("Maki", 3)
+io.println(maki.Name + " says " + maki.Meow()) // print 'Maki says meowww!'
+
+// Function definition
+fun fib(n)
+{
+    if n == 0 or n == 1 {
+        return 1
+    }
+
+    return fib(n-1) + fib(n-2)
+}
+
+// Function call
+var x = fib(5)
+io.println(x)
+
+// Constant definition
+let n = 42
+
+// Constants definition
+let {
+    pi = 3.14
+    e = 2.71
+    c = 299792458
+}
+
+// Array
+var seq = [ 1 2 3 ]
+for i = 0; i < seq.length; i++ {
+    io.println(seq[i])
+}
