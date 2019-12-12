@@ -80,7 +80,7 @@ func TestScanner_Scan(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			scanner := NewScanner(tc.in)
+			scanner := newScanner(tc.in)
 			tokens, _ := scanner.Scan()
 
 			if len(tokens) != len(tc.out) {

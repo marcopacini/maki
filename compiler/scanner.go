@@ -79,15 +79,15 @@ func (t Token) String()	string {
 	return fmt.Sprintf("%v %v %d", t.TokenType, t.Lexeme, t.Line)
 }
 
-type Scanner struct {
+type scanner struct {
 	source []rune
 	start int
 	current int
 	line int
 }
 
-func NewScanner(s string) *Scanner {
-	return &Scanner{
+func newScanner(s string) *scanner {
+	return &scanner{
 		source: []rune(s),
 		start: 0,
 		current: 0,
@@ -95,7 +95,7 @@ func NewScanner(s string) *Scanner {
 	}
 }
 
-func (s *Scanner) Scan() ([]Token, error) {
+func (s *scanner) Scan() ([]Token, error) {
 	ts := make([]Token, 0)
 
 	for ;; {
@@ -113,7 +113,7 @@ func (s *Scanner) Scan() ([]Token, error) {
 	}
 }
 
-func (s *Scanner) scanToken() (*Token, error) {
+func (s *scanner) scanToken() (*Token, error) {
 	s.start = s.current
 	s.trim()
 
@@ -295,34 +295,33 @@ func (s *Scanner) scanToken() (*Token, error) {
 
 			return nil, fmt.Errorf("unkown character '%v' at line %d", string(r), s.line)
 		}
-
 	}
 }
 
-func (s *Scanner) isEnd() bool {
+func (s *scanner) isEnd() bool {
 	return s.current >= len(s.source)
 }
 
-func (s *Scanner) peek() rune {
+func (s *scanner) peek() rune {
 	if s.isEnd() {
 		return '\x00'
 	}
 	return s.source[s.current]
 }
 
-func (s *Scanner) peekNext() rune {
+func (s *scanner) peekNext() rune {
 	if s.current+1 >= len(s.source) {
 		return '\x00'
 	}
 	return s.source[s.current-1]
 }
 
-func (s *Scanner) advance() rune {
+func (s *scanner) advance() rune {
 	s.current++
 	return s.source[s.current-1]
 }
 
-func (s *Scanner) isNext(r rune) bool {
+func (s *scanner) isNext(r rune) bool {
 	if s.isEnd() || s.source[s.current] != r {
 		return false
 	}
@@ -331,7 +330,7 @@ func (s *Scanner) isNext(r rune) bool {
 	return true
 }
 
-func (s *Scanner) trim() {
+func (s *scanner) trim() {
 	for !s.isEnd() {
 		r := s.peek()
 		switch r {
@@ -369,7 +368,7 @@ func isLetter(r rune) bool {
 	return false
 }
 
-func (s *Scanner) makeToken(t TokenType) *Token {
+func (s *scanner) makeToken(t TokenType) *Token {
 	return &Token{
 		TokenType: t,
 		Lexeme:    string(s.source[s.start:s.current]),

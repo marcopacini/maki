@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"maki/compiler"
 	"os"
 )
 
@@ -68,16 +67,5 @@ func runFile(path string) error {
 }
 
 func interpret(code string) error {
-	tokens, err := compiler.NewScanner(code).Scan()
-	if err != nil {
-		return err
-	}
-
-	out := ""
-	for _, t := range tokens {
-		out = out + string(t.TokenType) + " "
-	}
-	fmt.Println(out)
-
 	return nil
 }
