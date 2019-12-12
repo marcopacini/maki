@@ -21,3 +21,15 @@ jobs:
 
     - name: Build
       run: go build -v .
+  
+  test:
+    name: Unit test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+        
+    steps:
+      - uses: action/checkout@v1
+      - name: go test
+        run: go test ./...
