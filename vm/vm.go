@@ -17,7 +17,7 @@ const (
 type VM struct {
 	*PCode
 	ip int
-	stack [StackSize]float64
+	stack [StackSize]Value
 	sp int
 }
 
@@ -29,12 +29,12 @@ func NewVM(c *PCode) *VM {
 	}
 }
 
-func (vm *VM) push(val float64) {
-	vm.stack[vm.sp] = val
+func (vm *VM) push(v Value) {
+	vm.stack[vm.sp] = v
 	vm.sp++
 }
 
-func (vm *VM) pop() float64 {
+func (vm *VM) pop() Value {
 	vm.sp--
 	return vm.stack[vm.sp]
 }
@@ -44,29 +44,23 @@ func (vm *VM) Run() InterpretStatus {
 		switch vm.Code[vm.ip] {
 		case OpAdd:
 			{
-				vm.push(vm.pop() + vm.pop())
-				break
+				vm.add()
 			}
 		case OpConstant:
 			{
-				vm.ip++
-				addr := vm.Code[vm.ip]
-				vm.push(vm.Constants.At(int(addr)))
-				break
+				vm.constant()
 			}
 		case OpDivide:
 			{
-				vm.push(1. / vm.pop() * vm.pop())
-				break
+				vm.divide()
 			}
 		case OpMinus:
 			{
-				vm.push(-vm.pop())
-				break
+				vm.minus()
 			}
 		case OpMultiply:
 			{
-				vm.push(vm.pop() * vm.pop())
+				vm.multiply()
 			}
 		case OpReturn:
 			{
@@ -75,10 +69,74 @@ func (vm *VM) Run() InterpretStatus {
 			}
 		case OpSubtract:
 			{
-				vm.push(-vm.pop() + vm.pop())
-				break
+				vm.subtract()
 			}
 		}
 		vm.ip++
 	}
+}
+
+func (vm *VM) add() {
+	rhs := vm.pop()
+	lhs := vm.pop()
+
+	v := Value{
+		ValueType: Number,
+		N: lhs.N + rhs.N,
+	}
+
+	vm.push(v)
+}
+
+func (vm *VM) constant() {
+	vm.ip++
+	addr := int(vm.Code[vm.ip])
+	vm.push(vm.Constants.At(addr))
+}
+
+func (vm *VM) divide() {
+	rhs := vm.pop()
+	lhs := vm.pop()
+
+	v := Value{
+		ValueType: Number,
+		N: lhs.N / rhs.N,
+	}
+
+	vm.push(v)
+}
+
+func (vm *VM) minus() {
+	rhs := vm.pop()
+
+	v := Value{
+		ValueType: Number,
+		N: -rhs.N,
+	}
+
+	vm.push(v)
+}
+
+func (vm *VM) multiply() {
+	rhs := vm.pop()
+	lhs := vm.pop()
+
+	v := Value{
+		ValueType: Number,
+		N: lhs.N * rhs.N,
+	}
+
+	vm.push(v)
+}
+
+func (vm *VM) subtract() {
+	rhs := vm.pop()
+	lhs := vm.pop()
+
+	v := Value{
+		ValueType: Number,
+		N: lhs.N - rhs.N,
+	}
+
+	vm.push(v)
 }

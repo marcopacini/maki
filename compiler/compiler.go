@@ -164,7 +164,12 @@ func (c *Compiler) number()	error {
 		return err
 	}
 
-	c.emitConstant(n)
+	v := vm.Value{
+		ValueType: vm.Number,
+		N: n,
+	}
+
+	c.emitConstant(v)
 	return nil
 }
 
@@ -235,6 +240,6 @@ func (c *Compiler) emitBytes(bytes ...uint8) {
 	}
 }
 
-func (c *Compiler) emitConstant(v float64) {
+func (c *Compiler) emitConstant(v vm.Value) {
 	c.WriteConstant(v, c.current.Line)
 }

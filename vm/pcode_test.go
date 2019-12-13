@@ -2,24 +2,54 @@ package vm
 
 import "testing"
 
+func makeValue(i interface{}) Value {
+	value := Value{}
+
+	switch v := i.(type) {
+	case bool:
+		{
+			value.ValueType = Bool
+			value.B = v
+		}
+	case float64:
+		{
+			value.ValueType = Number
+			value.N = v
+		}
+	}
+
+	return value
+}
+
 func TestArray_Write(t *testing.T) {
 	tcs := []struct{
 		name string
-		init []float64
+		init []interface{}
 	} {
-		{ name: "Happy Path", init: []float64{ 3.14} },
+		{
+			name: "Happy Path",
+			init: []interface{} { 3.14, true, false },
+		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			a := newArray()
+			// Build a slice of values
+			vs := make([]Value, 0, len(tc.init))
 			for _, v := range tc.init {
+				vs = append(vs, makeValue(v))
+			}
+
+			// Write values to array
+			a := newArray()
+			for _, v := range vs {
 				a.Write(v)
 			}
 
+			// Test Write method
 			for i, v := range a.values {
-				if v != tc.init[i] {
-					t.Errorf("want %f, got %f", v, tc.init[i])
+				if v != vs[i] {
+					t.Errorf("want %+v, got %+v", v, tc.init[i])
 				}
 			}
 		})
@@ -29,31 +59,39 @@ func TestArray_Write(t *testing.T) {
 func TestArray_At(t *testing.T) {
 	tcs := []struct{
 		name string
-		init []float64
+		init []interface{}
 		input []int
-		output []float64
+		output []interface{}
 		isErr bool
 	}{
 		{
-			name:   "",
-			init:   []float64{3.14},
-			input:  []int{0},
-			output: []float64{3.14},
+			name:   "Happy Path",
+			init:   []interface{} { 3.14, true, false },
+			input:  []int{ 0, 1, 2 },
+			output: []interface{} { 3.14, true, false },
 			isErr:  false,
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			c := newArray()
+			// Build a slice of values
+			vs := make([]Value, 0, len(tc.init))
 			for _, v := range tc.init {
+				vs = append(vs, makeValue(v))
+			}
+
+			// Write values to array
+			c := newArray()
+			for _, v := range vs {
 				c.Write(v)
 			}
 
+			// Test At method
 			for i, _:= range tc.input {
 				v := c.At(tc.input[i])
-				if v != tc.output[i] {
-					t.Errorf("got %f, want %f", v, tc.output[i])
+				if v != vs[i] {
+					t.Errorf("got %+v, want %+v", v, tc.output[i])
 				}
 			}
 		})

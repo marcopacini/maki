@@ -1,21 +1,35 @@
 package vm
 
+type ValueType uint8
+
+const (
+	Bool ValueType = iota
+	Nil
+	Number
+)
+
+type Value struct {
+	ValueType
+	B bool
+	N float64
+}
+
 type array struct {
-	values []float64
+	values []Value
 }
 
 func newArray() *array {
 	return &array{
-		values: make([]float64, 0, 8),
+		values: make([]Value, 0, 8),
 	}
 }
 
-func (a *array) Write(v float64) uint8 {
+func (a *array) Write(v Value) uint8 {
 	a.values = append(a.values, v)
 	return uint8(len(a.values) - 1)
 }
 
-func (a *array) At(i int) float64 {
+func (a *array) At(i int) Value {
 	return a.values[i]
 }
 
@@ -47,7 +61,7 @@ func (c *PCode) Write(op uint8, line int) {
 	c.Lines.Add(line)
 }
 
-func (c *PCode) WriteConstant(v float64, line int) {
+func (c *PCode) WriteConstant(v Value, line int) {
 	c.Write(OpConstant, line)
 	address := c.Constants.Write(v)
 	c.Write(address, line)
