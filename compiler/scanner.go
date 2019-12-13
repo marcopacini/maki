@@ -368,9 +368,9 @@ func isLetter(r rune) bool {
 	return false
 }
 
-func (s *scanner) makeToken(t TokenType) *Token {
+func (s *scanner) makeToken(tt TokenType) *Token {
 	return &Token{
-		TokenType: t,
+		TokenType: tt,
 		Lexeme:    string(s.source[s.start:s.current]),
 		Line:      s.line,
 	}

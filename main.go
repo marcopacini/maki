@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
+	"maki/compiler"
+	"maki/vm"
 	"os"
 )
 
@@ -40,7 +41,7 @@ func repl() error {
 		}
 
 		if err := interpret(line); err != nil {
-			log.Fatal(err)
+			fmt.Println(err)
 		}
 	}
 
@@ -66,6 +67,12 @@ func runFile(path string) error {
 	return interpret(string(b))
 }
 
-func interpret(code string) error {
+func interpret(source string) error {
+	pcode, err := compiler.NewCompiler().Compile(source)
+	if err != nil {
+		return err
+	}
+
+	vm.NewVM(pcode).Run()
 	return nil
 }
