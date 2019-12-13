@@ -10,8 +10,8 @@ func newArray() *array {
 	}
 }
 
-func (a *array) Write(val float64) uint8 {
-	a.values = append(a.values, val)
+func (a *array) Write(v float64) uint8 {
+	a.values = append(a.values, v)
 	return uint8(len(a.values) - 1)
 }
 
@@ -30,26 +30,26 @@ const (
 )
 
 type PCode struct {
-	code []uint8
-	constants array
-	lines *RLE
+	Code      []uint8
+	Constants array
+	Lines     *RLE
 }
 
 func NewPCode() *PCode {
 	return &PCode{
-		code: make([]uint8, 0, 8),
-		lines: NewRLE(),
+		Code:  make([]uint8, 0, 8),
+		Lines: NewRLE(),
 	}
 }
 
 func (c *PCode) Write(op uint8, line int) {
-	c.code = append(c.code, op)
-	c.lines.Add(line)
+	c.Code = append(c.Code, op)
+	c.Lines.Add(line)
 }
 
-func (c *PCode) WriteConstant(value float64, line int) {
+func (c *PCode) WriteConstant(v float64, line int) {
 	c.Write(OpConstant, line)
-	address := c.constants.Write(value)
+	address := c.Constants.Write(v)
 	c.Write(address, line)
 }
 
