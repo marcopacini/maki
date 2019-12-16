@@ -1,11 +1,11 @@
 package vm
 
-type ValueType uint8
+type ValueType string
 
 const (
-	Bool ValueType = iota
-	Nil
-	Number
+	Bool ValueType = "BOOL"
+	Nil = "NIL"
+	Number = "NUMBER"
 )
 
 type Value struct {
@@ -37,11 +37,18 @@ const (
 	OpAdd  uint8 = iota
 	OpConstant
 	OpDivide
+	OpEqual
+	OpEqualEqual
 	OpFalse
+	OpGreater
+	OpGreaterEqual
+	OpLess
+	OpLessEqual
 	OpMinus
 	OpMultiply
 	OpNil
 	OpNot
+	OpNotEqual
 	OpReturn
 	OpSubtract
 	OpTrue

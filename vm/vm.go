@@ -52,9 +52,39 @@ func (vm *VM) Run() error {
 			{
 				vm.divide()
 			}
+		case OpEqualEqual:
+			{
+				if err := vm.equalEqual(); err != nil {
+					return err
+				}
+			}
 		case OpFalse:
 			{
 				vm.false()
+			}
+		case OpGreater:
+			{
+				if err := vm.greater(); err != nil {
+					return err
+				}
+			}
+		case OpGreaterEqual:
+			{
+				if err := vm.greaterEqual(); err != nil {
+					return err
+				}
+			}
+		case OpLess:
+			{
+				if err := vm.less(); err != nil {
+					return err
+				}
+			}
+		case OpLessEqual:
+			{
+				if err := vm.lessEqual(); err != nil {
+					return err
+				}
 			}
 		case OpNil:
 			{
@@ -63,6 +93,12 @@ func (vm *VM) Run() error {
 		case OpNot:
 			{
 				vm.not()
+			}
+		case OpNotEqual:
+			{
+				if err := vm.notEqual(); err != nil {
+					return err
+				}
 			}
 		case OpMinus:
 			{
@@ -86,6 +122,10 @@ func (vm *VM) Run() error {
 		case OpTrue:
 			{
 				vm.true()
+			}
+		default:
+			{
+				return fmt.Errorf("maki: runtime error, op code %04d not yet implemented", vm.Code[vm.ip])
 			}
 		}
 		vm.ip++
@@ -114,21 +154,107 @@ func (vm *VM) divide() {
 	rhs := vm.pop()
 	lhs := vm.pop()
 
-	v := Value{
-		ValueType: Number,
-		N: lhs.N / rhs.N,
-	}
-
+	v := Value{ ValueType: Number, N: lhs.N / rhs.N }
 	vm.push(v)
 }
 
-func (vm *VM) false() {
-	v := Value{
-		ValueType: Bool,
-		B: false,
+func (vm *VM) equalEqual() error {
+	rhs := vm.pop()
+	lhs := vm.pop()
+
+	if lhs.ValueType != rhs.ValueType{
+		return fmt.Errorf("maki: runtime error, invalid binary operands: %s and %s [line %d]", lhs.ValueType, rhs.ValueType, vm.getCurrentLine())
+	}
+
+	v := Value{ ValueType: Bool, B: true }
+
+	switch lhs.ValueType {
+	case Bool: v.B = lhs.B == rhs.B
+	case Number: v.B = lhs.N == lhs.N
 	}
 
 	vm.push(v)
+	return nil
+}
+
+func (vm *VM) notEqual() error {
+	rhs := vm.pop()
+	lhs := vm.pop()
+
+	if lhs.ValueType != rhs.ValueType{
+		return fmt.Errorf("maki: runtime error, invalid binary operands: %s and %s [line %d]", lhs.ValueType, rhs.ValueType, vm.getCurrentLine())
+	}
+
+	v := Value{ ValueType: Bool, B: false }
+
+	switch lhs.ValueType {
+	case Bool: v.B = lhs.B != rhs.B
+	case Number: v.B = lhs.N != lhs.N
+	}
+
+	vm.push(v)
+	return nil
+}
+
+func (vm *VM) false() {
+	v := Value{ ValueType: Bool, B: false }
+	vm.push(v)
+}
+
+func (vm *VM) greater() error {
+	rhs := vm.pop()
+	lhs := vm.pop()
+
+	if lhs.ValueType != Number || rhs.ValueType != Number {
+		return fmt.Errorf("maki: runtime error, invalid binary operands: %s and %s [line %d]", lhs.ValueType, rhs.ValueType, vm.getCurrentLine())
+	}
+
+	v := Value{ ValueType: Bool, B: lhs.N > rhs.N }
+	vm.push(v)
+
+	return nil
+}
+
+func (vm *VM) greaterEqual() error {
+	rhs := vm.pop()
+	lhs := vm.pop()
+
+	if lhs.ValueType != Number || rhs.ValueType != Number {
+		return fmt.Errorf("maki: runtime error, invalid binary operands: %s and %s [line %d]", lhs.ValueType, rhs.ValueType, vm.getCurrentLine())
+	}
+
+	v := Value{ ValueType: Bool, B: lhs.N >= rhs.N }
+	vm.push(v)
+
+	return nil
+}
+
+func (vm *VM) less() error {
+	rhs := vm.pop()
+	lhs := vm.pop()
+
+	if lhs.ValueType != Number || rhs.ValueType != Number {
+		return fmt.Errorf("maki: runtime error, invalid binary operands: %s and %s [line %d]", lhs.ValueType, rhs.ValueType, vm.getCurrentLine())
+	}
+
+	v := Value{ ValueType: Bool, B: lhs.N < rhs.N }
+	vm.push(v)
+
+	return nil
+}
+
+func (vm *VM) lessEqual() error {
+	rhs := vm.pop()
+	lhs := vm.pop()
+
+	if lhs.ValueType != Number || rhs.ValueType != Number {
+		return fmt.Errorf("maki: runtime error, invalid binary operands: %s and %s [line %d]", lhs.ValueType, rhs.ValueType, vm.getCurrentLine())
+	}
+
+	v := Value{ ValueType: Bool, B: lhs.N <= rhs.N }
+	vm.push(v)
+
+	return nil
 }
 
 func (vm *VM) minus() error {
@@ -146,11 +272,7 @@ func (vm *VM) multiply() {
 	rhs := vm.pop()
 	lhs := vm.pop()
 
-	v := Value{
-		ValueType: Number,
-		N: lhs.N * rhs.N,
-	}
-
+	v := Value{ ValueType: Number, N: lhs.N * rhs.N }
 	vm.push(v)
 }
 
@@ -189,11 +311,7 @@ func (vm *VM) subtract() {
 }
 
 func (vm *VM) true() {
-	v := Value{
-		ValueType: Bool,
-		B: true,
-	}
-
+	v := Value{ ValueType: Bool, B: true }
 	vm.push(v)
 }
 

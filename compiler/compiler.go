@@ -78,11 +78,18 @@ type rule struct {
 
 func getRule(tt TokenType) rule {
 	var rules = map[TokenType]rule {
+		Equal: { prefix: nil, infix: (*Compiler).binary, precedence: PrecEquality },
+		EqualEqual: { prefix: nil, infix: (*Compiler).binary, precedence: PrecEquality },
 		False: { prefix: (*Compiler).literal, infix: nil, precedence: PrecNone },
+		Greater: { prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison },
+		GreaterEqual: { prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison },
 		LeftParenthesis: { prefix: (*Compiler).grouping, infix: nil, precedence: PrecNone },
+		Less: { prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison },
+		LessEqual: { prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison },
 		Minus: { prefix: (*Compiler).unary, infix: (*Compiler).binary, precedence: PrecTerm },
 		Nil: { prefix: (*Compiler).literal, infix: nil, precedence: PrecNone },
 		Not: { prefix: (*Compiler).unary, infix: nil, precedence: PrecNone },
+		NotEqual: { prefix: nil, infix: (*Compiler).binary, precedence: PrecEquality },
 		Number: { prefix: (*Compiler).number, infix: nil, precedence: PrecNone },
 		Plus: { prefix: nil, infix: (*Compiler).binary, precedence: PrecTerm },
 		Slash: { prefix: nil, infix: (*Compiler).binary, precedence: PrecFactor },
@@ -164,18 +171,9 @@ func (c *Compiler) expression() error {
 
 func (c *Compiler) literal() error {
 	switch c.previous.TokenType {
-	case False:
-		{
-			c.emitByte(vm.OpFalse)
-		}
-	case Nil:
-		{
-			c.emitByte(vm.OpNil)
-		}
-	case True:
-		{
-			c.emitByte(vm.OpTrue)
-		}
+	case False: c.emitByte(vm.OpFalse)
+	case Nil: c.emitByte(vm.OpNil)
+	case True: c.emitByte(vm.OpTrue)
 	}
 
 	return nil
@@ -211,14 +209,8 @@ func (c *Compiler) unary() error {
 	}
 
 	switch tt {
-	case Not:
-		{
-			c.emitByte(vm.OpNot)
-		}
-	case Minus:
-		{
-			c.emitByte(vm.OpMinus)
-		}
+	case Not: c.emitByte(vm.OpNot)
+	case Minus: c.emitByte(vm.OpMinus)
 	}
 
 	return nil
@@ -231,26 +223,15 @@ func (c *Compiler) binary()	error {
 	}
 
 	switch tt {
-	case Plus:
-		{
-			c.emitByte(vm.OpAdd)
-			break
-		}
-	case Minus:
-		{
-			c.emitByte(vm.OpSubtract)
-			break
-		}
-	case Star:
-		{
-			c.emitByte(vm.OpMultiply)
-			break
-		}
-	case Slash:
-		{
-			c.emitByte(vm.OpDivide)
-			break
-		}
+	case EqualEqual: c.emitByte(vm.OpEqualEqual)
+	case Greater: c.emitByte(vm.OpGreater)
+	case GreaterEqual: c.emitByte(vm.OpGreaterEqual)
+	case Less: c.emitByte(vm.OpLess)
+	case LessEqual: c.emitByte(vm.OpLessEqual)
+	case Minus:	c.emitByte(vm.OpSubtract)
+	case Plus: c.emitByte(vm.OpAdd)
+	case Star: c.emitByte(vm.OpMultiply)
+	case Slash: c.emitByte(vm.OpDivide)
 	}
 
 	return nil
