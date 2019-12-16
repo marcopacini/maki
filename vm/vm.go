@@ -56,6 +56,14 @@ func (vm *VM) Run() error {
 			{
 				vm.false()
 			}
+		case OpNil:
+			{
+				vm.nil()
+			}
+		case OpNot:
+			{
+				vm.not()
+			}
 		case OpMinus:
 			{
 				if err := vm.minus(); err != nil {
@@ -144,6 +152,28 @@ func (vm *VM) multiply() {
 	}
 
 	vm.push(v)
+}
+
+func (vm *VM) nil() {
+	v := Value{ ValueType: Nil }
+	vm.push(v)
+}
+
+func (vm *VM) not()	{
+	lhs := vm.pop()
+
+	switch lhs.ValueType {
+	case Bool:
+		{
+			v := Value{ ValueType: Bool, B: !lhs.B }
+			vm.push(v)
+		}
+	default:
+		{
+			v := Value{ ValueType: Bool, B: true }
+			vm.push(v)
+		}
+	}
 }
 
 func (vm *VM) subtract() {

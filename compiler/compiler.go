@@ -82,6 +82,7 @@ func getRule(tt TokenType) rule {
 		LeftParenthesis: { prefix: (*Compiler).grouping, infix: nil, precedence: PrecNone },
 		Minus: { prefix: (*Compiler).unary, infix: (*Compiler).binary, precedence: PrecTerm },
 		Nil: { prefix: (*Compiler).literal, infix: nil, precedence: PrecNone },
+		Not: { prefix: (*Compiler).unary, infix: nil, precedence: PrecNone },
 		Number: { prefix: (*Compiler).number, infix: nil, precedence: PrecNone },
 		Plus: { prefix: nil, infix: (*Compiler).binary, precedence: PrecTerm },
 		Slash: { prefix: nil, infix: (*Compiler).binary, precedence: PrecFactor },
@@ -210,10 +211,13 @@ func (c *Compiler) unary() error {
 	}
 
 	switch tt {
+	case Not:
+		{
+			c.emitByte(vm.OpNot)
+		}
 	case Minus:
 		{
 			c.emitByte(vm.OpMinus)
-			break
 		}
 	}
 

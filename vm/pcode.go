@@ -41,6 +41,7 @@ const (
 	OpMinus
 	OpMultiply
 	OpNil
+	OpNot
 	OpReturn
 	OpSubtract
 	OpTrue
