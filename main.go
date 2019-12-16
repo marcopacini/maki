@@ -73,6 +73,5 @@ func interpret(source string) error {
 		return err
 	}
 
-	vm.NewVM(pcode).Run()
-	return nil
+	return vm.NewVM(pcode).Run()
 }

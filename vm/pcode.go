@@ -37,10 +37,13 @@ const (
 	OpAdd  uint8 = iota
 	OpConstant
 	OpDivide
+	OpFalse
 	OpMinus
 	OpMultiply
+	OpNil
 	OpReturn
 	OpSubtract
+	OpTrue
 )
 
 type PCode struct {

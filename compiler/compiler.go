@@ -78,12 +78,15 @@ type rule struct {
 
 func getRule(tt TokenType) rule {
 	var rules = map[TokenType]rule {
+		False: { prefix: (*Compiler).literal, infix: nil, precedence: PrecNone },
 		LeftParenthesis: { prefix: (*Compiler).grouping, infix: nil, precedence: PrecNone },
 		Minus: { prefix: (*Compiler).unary, infix: (*Compiler).binary, precedence: PrecTerm },
+		Nil: { prefix: (*Compiler).literal, infix: nil, precedence: PrecNone },
+		Number: { prefix: (*Compiler).number, infix: nil, precedence: PrecNone },
 		Plus: { prefix: nil, infix: (*Compiler).binary, precedence: PrecTerm },
 		Slash: { prefix: nil, infix: (*Compiler).binary, precedence: PrecFactor },
 		Star: { prefix: nil, infix: (*Compiler).binary, precedence: PrecFactor },
-		Number: { prefix: (*Compiler).number, infix: nil, precedence: PrecNone },
+		True: { prefix: (*Compiler).literal, infix: nil, precedence: PrecNone },
 	}
 
 	if r, ok := rules[tt]; ok {
@@ -153,6 +156,25 @@ func (c *Compiler) Compile(source string) (*vm.PCode, error) {
 func (c *Compiler) expression() error {
 	if err := c.parsePrecedence(PrecAssignment); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (c *Compiler) literal() error {
+	switch c.previous.TokenType {
+	case False:
+		{
+			c.emitByte(vm.OpFalse)
+		}
+	case Nil:
+		{
+			c.emitByte(vm.OpNil)
+		}
+	case True:
+		{
+			c.emitByte(vm.OpTrue)
+		}
 	}
 
 	return nil

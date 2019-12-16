@@ -1,13 +1,7 @@
 package vm
 
-import "fmt"
-
-type InterpretStatus uint8
-
-const (
-	OK InterpretStatus = iota
-	RuntimeError
-	CompileError
+import (
+	"fmt"
 )
 
 const (
@@ -29,6 +23,10 @@ func NewVM(c *PCode) *VM {
 	}
 }
 
+func (vm *VM) top() *Value {
+	return &vm.stack[0]
+}
+
 func (vm *VM) push(v Value) {
 	vm.stack[vm.sp] = v
 	vm.sp++
@@ -39,7 +37,7 @@ func (vm *VM) pop() Value {
 	return vm.stack[vm.sp]
 }
 
-func (vm *VM) Run() InterpretStatus {
+func (vm *VM) Run() error {
 	for ;; {
 		switch vm.Code[vm.ip] {
 		case OpAdd:
@@ -54,9 +52,15 @@ func (vm *VM) Run() InterpretStatus {
 			{
 				vm.divide()
 			}
+		case OpFalse:
+			{
+				vm.false()
+			}
 		case OpMinus:
 			{
-				vm.minus()
+				if err := vm.minus(); err != nil {
+					return err
+				}
 			}
 		case OpMultiply:
 			{
@@ -64,12 +68,16 @@ func (vm *VM) Run() InterpretStatus {
 			}
 		case OpReturn:
 			{
-				fmt.Println(vm.pop())
-				return OK
+				fmt.Printf("%+v\n", vm.pop())
+				return nil
 			}
 		case OpSubtract:
 			{
 				vm.subtract()
+			}
+		case OpTrue:
+			{
+				vm.true()
 			}
 		}
 		vm.ip++
@@ -106,15 +114,24 @@ func (vm *VM) divide() {
 	vm.push(v)
 }
 
-func (vm *VM) minus() {
-	rhs := vm.pop()
-
+func (vm *VM) false() {
 	v := Value{
-		ValueType: Number,
-		N: -rhs.N,
+		ValueType: Bool,
+		B: false,
 	}
 
 	vm.push(v)
+}
+
+func (vm *VM) minus() error {
+	v := vm.top()
+
+	if v.ValueType != Number {
+		return fmt.Errorf("maki : runtime error, operand must be a number [line %d]", vm.getCurrentLine())
+	}
+
+	v.N = -v.N
+	return nil
 }
 
 func (vm *VM) multiply() {
@@ -139,4 +156,22 @@ func (vm *VM) subtract() {
 	}
 
 	vm.push(v)
+}
+
+func (vm *VM) true() {
+	v := Value{
+		ValueType: Bool,
+		B: true,
+	}
+
+	vm.push(v)
+}
+
+func (vm *VM) getCurrentLine() int {
+	line, err := vm.Lines.At(vm.ip)
+	if err != nil {
+		panic(err)
+	}
+
+	return line
 }
