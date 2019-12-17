@@ -180,7 +180,7 @@ func (vm *VM) equalEqual() error {
 	lhs := vm.pop()
 
 	if lhs.ValueType != rhs.ValueType{
-		return fmt.Errorf("maki: runtime error, invalid binary operands: %s and %s [line %d]", lhs.ValueType, rhs.ValueType, vm.getCurrentLine())
+		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
 	v := Value{ ValueType: Bool, B: true }
@@ -199,7 +199,7 @@ func (vm *VM) notEqual() error {
 	lhs := vm.pop()
 
 	if lhs.ValueType != rhs.ValueType{
-		return fmt.Errorf("maki: runtime error, invalid binary operands: %s and %s [line %d]", lhs.ValueType, rhs.ValueType, vm.getCurrentLine())
+		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
 	v := Value{ ValueType: Bool, B: false }
@@ -223,7 +223,7 @@ func (vm *VM) greater() error {
 	lhs := vm.pop()
 
 	if lhs.ValueType != Number || rhs.ValueType != Number {
-		return fmt.Errorf("maki: runtime error, invalid binary operands: %s and %s [line %d]", lhs.ValueType, rhs.ValueType, vm.getCurrentLine())
+		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
 	v := Value{ ValueType: Bool, B: lhs.N > rhs.N }
@@ -237,7 +237,7 @@ func (vm *VM) greaterEqual() error {
 	lhs := vm.pop()
 
 	if lhs.ValueType != Number || rhs.ValueType != Number {
-		return fmt.Errorf("maki: runtime error, invalid binary operands: %s and %s [line %d]", lhs.ValueType, rhs.ValueType, vm.getCurrentLine())
+		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
 	v := Value{ ValueType: Bool, B: lhs.N >= rhs.N }
@@ -251,7 +251,7 @@ func (vm *VM) less() error {
 	lhs := vm.pop()
 
 	if lhs.ValueType != Number || rhs.ValueType != Number {
-		return fmt.Errorf("maki: runtime error, invalid binary operands: %s and %s [line %d]", lhs.ValueType, rhs.ValueType, vm.getCurrentLine())
+		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
 	v := Value{ ValueType: Bool, B: lhs.N < rhs.N }
@@ -265,7 +265,7 @@ func (vm *VM) lessEqual() error {
 	lhs := vm.pop()
 
 	if lhs.ValueType != Number || rhs.ValueType != Number {
-		return fmt.Errorf("maki: runtime error, invalid binary operands: %s and %s [line %d]", lhs.ValueType, rhs.ValueType, vm.getCurrentLine())
+		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
 	v := Value{ ValueType: Bool, B: lhs.N <= rhs.N }
