@@ -67,7 +67,6 @@ const (
 	PrecUnary
 	PrecCall
 	PrecPrimary
-
 )
 
 type rule struct {
@@ -94,6 +93,7 @@ func getRule(tt TokenType) rule {
 		Plus: { prefix: nil, infix: (*Compiler).binary, precedence: PrecTerm },
 		Slash: { prefix: nil, infix: (*Compiler).binary, precedence: PrecFactor },
 		Star: { prefix: nil, infix: (*Compiler).binary, precedence: PrecFactor },
+		String: { prefix: (*Compiler).string, infix: nil, precedence: PrecNone },
 		True: { prefix: (*Compiler).literal, infix: nil, precedence: PrecNone },
 	}
 
@@ -161,12 +161,40 @@ func (c *Compiler) Compile(source string) (*vm.PCode, error) {
 	return c.PCode, nil
 }
 
+func (c *Compiler) binary()	error {
+	tt := c.previous.TokenType
+	if err := c.parsePrecedence(getRule(tt).precedence); err != nil {
+		return err
+	}
+
+	switch tt {
+	case EqualEqual: c.emitByte(vm.OpEqualEqual)
+	case Greater: c.emitByte(vm.OpGreater)
+	case GreaterEqual: c.emitByte(vm.OpGreaterEqual)
+	case Less: c.emitByte(vm.OpLess)
+	case LessEqual: c.emitByte(vm.OpLessEqual)
+	case Minus:	c.emitByte(vm.OpSubtract)
+	case Plus: c.emitByte(vm.OpAdd)
+	case Star: c.emitByte(vm.OpMultiply)
+	case Slash: c.emitByte(vm.OpDivide)
+	}
+
+	return nil
+}
+
 func (c *Compiler) expression() error {
 	if err := c.parsePrecedence(PrecAssignment); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (c *Compiler) grouping() error {
+	if err := c.expression(); err != nil {
+		return err
+	}
+	return c.consume(RightParenthesis, "Expect ')' after expression")
 }
 
 func (c *Compiler) literal() error {
@@ -185,20 +213,16 @@ func (c *Compiler) number()	error {
 		return err
 	}
 
-	v := vm.Value{
-		ValueType: vm.Number,
-		N: n,
-	}
-
+	v := vm.Value{ ValueType: vm.Number, N: n }
 	c.emitConstant(v)
+
 	return nil
 }
 
-func (c *Compiler) grouping() error {
-	if err := c.expression(); err != nil {
-		return err
-	}
-	return c.consume(RightParenthesis, "Expect ')' after expression")
+func (c *Compiler) string() error {
+	v := vm.Value{ ValueType: vm.Object, Ptr: c.previous.Lexeme }
+	c.emitConstant(v)
+	return nil
 }
 
 func (c *Compiler) unary() error {
@@ -211,27 +235,6 @@ func (c *Compiler) unary() error {
 	switch tt {
 	case Not: c.emitByte(vm.OpNot)
 	case Minus: c.emitByte(vm.OpMinus)
-	}
-
-	return nil
-}
-
-func (c *Compiler) binary()	error {
-	tt := c.previous.TokenType
-	if err := c.parsePrecedence(getRule(tt).precedence); err != nil {
-		return err
-	}
-
-	switch tt {
-	case EqualEqual: c.emitByte(vm.OpEqualEqual)
-	case Greater: c.emitByte(vm.OpGreater)
-	case GreaterEqual: c.emitByte(vm.OpGreaterEqual)
-	case Less: c.emitByte(vm.OpLess)
-	case LessEqual: c.emitByte(vm.OpLessEqual)
-	case Minus:	c.emitByte(vm.OpSubtract)
-	case Plus: c.emitByte(vm.OpAdd)
-	case Star: c.emitByte(vm.OpMultiply)
-	case Slash: c.emitByte(vm.OpDivide)
 	}
 
 	return nil

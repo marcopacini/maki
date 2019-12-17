@@ -1,19 +1,5 @@
 package vm
 
-type ValueType string
-
-const (
-	Bool ValueType = "BOOL"
-	Nil = "NIL"
-	Number = "NUMBER"
-)
-
-type Value struct {
-	ValueType
-	B bool
-	N float64
-}
-
 type array struct {
 	values []Value
 }

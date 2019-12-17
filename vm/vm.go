@@ -132,16 +132,33 @@ func (vm *VM) Run() error {
 	}
 }
 
-func (vm *VM) add() {
+func (vm *VM) add() error {
 	rhs := vm.pop()
 	lhs := vm.pop()
 
-	v := Value{
-		ValueType: Number,
-		N: lhs.N + rhs.N,
+	err := fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
+
+	if lhs.ValueType == Number && rhs.ValueType == Number {
+		v := Value{ ValueType: Number, N: lhs.N + rhs.N }
+		vm.push(v)
 	}
 
-	vm.push(v)
+	if lhs.ValueType == Object && rhs.ValueType == Object {
+		ls, ok := lhs.Ptr.(string)
+		if !ok {
+			return err
+		}
+
+		rs, ok := rhs.Ptr.(string)
+		if !ok {
+			return err
+		}
+
+		v := Value{ ValueType: Object, Ptr: ls + rs }
+		vm.push(v)
+	}
+
+	return err
 }
 
 func (vm *VM) constant() {

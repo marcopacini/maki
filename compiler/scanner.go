@@ -258,7 +258,7 @@ func (s *scanner) scanToken() (*Token, error) {
 
 			t := &Token{
 				TokenType: String,
-				Lexeme: string(s.source[s.start:s.current]),
+				Lexeme: string(s.source[s.start+1:s.current-1]),
 				Line: s.line,
 			}
 			return t, nil
