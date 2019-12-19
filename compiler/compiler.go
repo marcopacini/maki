@@ -33,6 +33,14 @@ func (p *parser) advance() error {
 	return nil
 }
 
+func (p *parser) match(tt TokenType) bool {
+	if p.current.TokenType == tt {
+		_ = p.advance()
+		return true
+	}
+	return false
+}
+
 func (p *parser) consume(tt TokenType, msg string, a ...interface{}) error {
 	if p.current.TokenType == tt {
 		_ = p.advance()
@@ -146,8 +154,10 @@ func (c *Compiler) Compile(source string) (*vm.PCode, error) {
 		return nil, err
 	}
 
-	if err := c.expression(); err != nil {
-		return nil, err
+	for !c.match(Eof) {
+		if err := c.declaration(); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := c.consume(Eof, "error at line %d: expected EOF", c.current.Line); err != nil {
@@ -155,7 +165,7 @@ func (c *Compiler) Compile(source string) (*vm.PCode, error) {
 		return nil, err
 	}
 
-	// Temporary: expression-only support
+	// temporary exit statement
 	c.emitByte(vm.OpReturn)
 
 	return c.PCode, nil
@@ -190,6 +200,10 @@ func (c *Compiler) expression() error {
 	return nil
 }
 
+func (c *Compiler) declaration() error {
+	return c.statement()
+}
+
 func (c *Compiler) grouping() error {
 	if err := c.expression(); err != nil {
 		return err
@@ -219,6 +233,27 @@ func (c *Compiler) number()	error {
 	return nil
 }
 
+func (c *Compiler) print() error {
+	if err := c.expression(); err != nil {
+		return err
+	}
+
+	if err := c.consume(Semicolon, "error at line %d: expected semicolon", c.current.Line); err != nil {
+		return err
+	}
+
+	c.emitByte(vm.OpPrint)
+	return nil
+}
+
+func (c *Compiler) statement() error {
+	if c.match(Print) {
+		return c.print()
+	}
+
+	return nil
+}
+
 func (c *Compiler) string() error {
 	v := vm.Value{ ValueType: vm.Object, Ptr: c.previous.Lexeme }
 	c.emitConstant(v)
@@ -227,6 +262,7 @@ func (c *Compiler) string() error {
 
 func (c *Compiler) unary() error {
 	tt := c.previous.TokenType
+
 
 	if err := c.expression(); err != nil {
 		return err

@@ -35,6 +35,7 @@ const (
 	OpNil
 	OpNot
 	OpNotEqual
+	OpPrint
 	OpReturn
 	OpSubtract
 	OpTrue

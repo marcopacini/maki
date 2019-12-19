@@ -42,7 +42,9 @@ func (vm *VM) Run() error {
 		switch vm.Code[vm.ip] {
 		case OpAdd:
 			{
-				vm.add()
+				if err := vm.add(); err != nil {
+					return err
+				}
 			}
 		case OpConstant:
 			{
@@ -110,9 +112,12 @@ func (vm *VM) Run() error {
 			{
 				vm.multiply()
 			}
-		case OpReturn:
+		case OpPrint:
 			{
 				fmt.Printf("%+v\n", vm.pop())
+			}
+		case OpReturn:
+			{
 				return nil
 			}
 		case OpSubtract:
@@ -133,14 +138,13 @@ func (vm *VM) Run() error {
 }
 
 func (vm *VM) add() error {
-	rhs := vm.pop()
-	lhs := vm.pop()
-
+	rhs, lhs := vm.getOperands()
 	err := fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 
 	if lhs.ValueType == Number && rhs.ValueType == Number {
 		v := Value{ ValueType: Number, N: lhs.N + rhs.N }
 		vm.push(v)
+		return nil
 	}
 
 	if lhs.ValueType == Object && rhs.ValueType == Object {
@@ -156,6 +160,7 @@ func (vm *VM) add() error {
 
 		v := Value{ ValueType: Object, Ptr: ls + rs }
 		vm.push(v)
+		return nil
 	}
 
 	return err
@@ -179,8 +184,10 @@ func (vm *VM) equalEqual() error {
 	rhs := vm.pop()
 	lhs := vm.pop()
 
+	err := fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
+
 	if lhs.ValueType != rhs.ValueType{
-		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
+		return err
 	}
 
 	v := Value{ ValueType: Bool, B: true }
@@ -188,6 +195,20 @@ func (vm *VM) equalEqual() error {
 	switch lhs.ValueType {
 	case Bool: v.B = lhs.B == rhs.B
 	case Number: v.B = lhs.N == lhs.N
+	case Object:
+		{
+			ls, ok := lhs.Ptr.(string)
+			if !ok {
+				return err
+			}
+
+			rs, ok := rhs.Ptr.(string)
+			if !ok {
+				return err
+			}
+
+			v.B = ls == rs
+		}
 	}
 
 	vm.push(v)
@@ -330,6 +351,10 @@ func (vm *VM) subtract() {
 func (vm *VM) true() {
 	v := Value{ ValueType: Bool, B: true }
 	vm.push(v)
+}
+
+func (vm *VM) getOperands()	(Value, Value) {
+	return vm.pop(), vm.pop()
 }
 
 func (vm *VM) getCurrentLine() int {
