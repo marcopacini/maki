@@ -36,6 +36,7 @@ jobs:
         run: go test ./...
       
       - name: Component test
-        run: 
+        run:  
+          go install ./... |
           cd test |
-          ./run_all.sh
+          sh ./run_all.sh
