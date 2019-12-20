@@ -1,5 +1,5 @@
 print 123 + 456;
 // expect: 579
 
-print 12 + 34 fvhjgdjh 56;
+print 12 + 34 + 56;
 // expect: 102

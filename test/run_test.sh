@@ -11,12 +11,12 @@ OUTPUT=$(maki "$1" 2>&1)
 
 if [ $? -eq 1 ]
 then
-  echo "FAILS: $OUTPUT"
+  echo "FAILS :: $OUTPUT"
   exit 1
 fi
 
 if [ "$OUTPUT" != "$EXPECT" ]
 then
-  echo "FAILS: output doesn't match"
+  echo "FAILS :: output doesn't match"
   exit 1
 fi
