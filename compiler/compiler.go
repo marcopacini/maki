@@ -251,6 +251,14 @@ func (c *Compiler) statement() error {
 		return c.print()
 	}
 
+	if err := c.expression(); err != nil {
+		return err
+	}
+	if err := c.consume(Semicolon, "error at line %d: expected semicolon", c.current.Line); err != nil {
+		return err
+	}
+	c.emitByte(vm.OpPop)
+
 	return nil
 }
 

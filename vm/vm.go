@@ -112,6 +112,10 @@ func (vm *VM) Run() error {
 			{
 				vm.multiply()
 			}
+		case OpPop:
+			{
+				_ = vm.pop()
+			}
 		case OpPrint:
 			{
 				fmt.Printf("%+v\n", vm.pop())
@@ -181,8 +185,7 @@ func (vm *VM) divide() {
 }
 
 func (vm *VM) equalEqual() error {
-	rhs := vm.pop()
-	lhs := vm.pop()
+	rhs, lhs := vm.getOperands()
 
 	err := fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 
