@@ -1,0 +1,5 @@
+print 12 * 34;
+// expect: 408
+
+print 1 * 2 * 3;
+// expect: 6
