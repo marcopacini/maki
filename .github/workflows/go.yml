@@ -39,4 +39,5 @@ jobs:
         run:  
           go install ./... |
           cd test |
+          ls -al |
           sh ./run_all.sh
