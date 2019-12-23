@@ -23,13 +23,14 @@ jobs:
       run: go build -v .
   
   test:
-    name: Unit test
+    name: Test
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macOS-latest]
+          os: [ubuntu-latest, macOS-latest]
         
     steps:
       - uses: actions/checkout@v1
-      - name: go test
+      
+      - name: Unit test
         run: go test ./...
