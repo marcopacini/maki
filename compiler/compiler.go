@@ -131,7 +131,7 @@ func (c *Compiler) parsePrecedence(prec precedence) error {
 		return err
 	}
 
-	for prec < getRule(c.current.TokenType).precedence {
+	for prec <= getRule(c.current.TokenType).precedence {
 		if err := c.advance(); err != nil {
 			return err
 		}
@@ -213,9 +213,21 @@ func (c *Compiler) grouping() error {
 
 func (c *Compiler) literal() error {
 	switch c.previous.TokenType {
-	case False: c.emitByte(vm.OpFalse)
-	case Nil: c.emitByte(vm.OpNil)
-	case True: c.emitByte(vm.OpTrue)
+	case False:
+		{
+			v := vm.Value{ ValueType: vm.Bool, B: false }
+			c.emitConstant(v)
+		}
+	case Nil:
+		{
+			v := vm.Value{ ValueType: vm.Nil }
+			c.emitConstant(v)
+		}
+	case True:
+		{
+			v := vm.Value{ ValueType: vm.Bool, B: true }
+			c.emitConstant(v)
+		}
 	}
 
 	return nil
@@ -271,8 +283,7 @@ func (c *Compiler) string() error {
 func (c *Compiler) unary() error {
 	tt := c.previous.TokenType
 
-
-	if err := c.expression(); err != nil {
+	if err := c.parsePrecedence(PrecUnary); err != nil {
 		return err
 	}
 
@@ -284,11 +295,11 @@ func (c *Compiler) unary() error {
 	return nil
 }
 
-func (c *Compiler) emitByte(byte uint8) {
+func (c *Compiler) emitByte(byte vm.OpCode) {
 	c.Write(byte, c.current.Line)
 }
 
-func (c *Compiler) emitBytes(bytes ...uint8) {
+func (c *Compiler) emitBytes(bytes ...vm.OpCode) {
 	for _, b := range bytes {
 		c.emitByte(b)
 	}

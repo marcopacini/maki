@@ -60,10 +60,6 @@ func (vm *VM) Run() error {
 					return err
 				}
 			}
-		case OpFalse:
-			{
-				vm.false()
-			}
 		case OpGreater:
 			{
 				if err := vm.greater(); err != nil {
@@ -127,10 +123,6 @@ func (vm *VM) Run() error {
 		case OpSubtract:
 			{
 				vm.subtract()
-			}
-		case OpTrue:
-			{
-				vm.true()
 			}
 		default:
 			{
@@ -219,8 +211,7 @@ func (vm *VM) equalEqual() error {
 }
 
 func (vm *VM) notEqual() error {
-	rhs := vm.pop()
-	lhs := vm.pop()
+	rhs, lhs := vm.getOperands()
 
 	if lhs.ValueType != rhs.ValueType{
 		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
@@ -237,14 +228,8 @@ func (vm *VM) notEqual() error {
 	return nil
 }
 
-func (vm *VM) false() {
-	v := Value{ ValueType: Bool, B: false }
-	vm.push(v)
-}
-
 func (vm *VM) greater() error {
-	rhs := vm.pop()
-	lhs := vm.pop()
+	rhs, lhs := vm.getOperands()
 
 	if lhs.ValueType != Number || rhs.ValueType != Number {
 		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
@@ -257,8 +242,7 @@ func (vm *VM) greater() error {
 }
 
 func (vm *VM) greaterEqual() error {
-	rhs := vm.pop()
-	lhs := vm.pop()
+	rhs, lhs := vm.getOperands()
 
 	if lhs.ValueType != Number || rhs.ValueType != Number {
 		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
@@ -271,8 +255,7 @@ func (vm *VM) greaterEqual() error {
 }
 
 func (vm *VM) less() error {
-	rhs := vm.pop()
-	lhs := vm.pop()
+	rhs, lhs := vm.getOperands()
 
 	if lhs.ValueType != Number || rhs.ValueType != Number {
 		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
@@ -285,8 +268,7 @@ func (vm *VM) less() error {
 }
 
 func (vm *VM) lessEqual() error {
-	rhs := vm.pop()
-	lhs := vm.pop()
+	rhs, lhs := vm.getOperands()
 
 	if lhs.ValueType != Number || rhs.ValueType != Number {
 		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
@@ -310,8 +292,7 @@ func (vm *VM) minus() error {
 }
 
 func (vm *VM) multiply() {
-	rhs := vm.pop()
-	lhs := vm.pop()
+	rhs, lhs := vm.getOperands()
 
 	v := Value{ ValueType: Number, N: lhs.N * rhs.N }
 	vm.push(v)
@@ -340,19 +321,13 @@ func (vm *VM) not()	{
 }
 
 func (vm *VM) subtract() {
-	rhs := vm.pop()
-	lhs := vm.pop()
+	rhs, lhs := vm.getOperands()
 
 	v := Value{
 		ValueType: Number,
 		N: lhs.N - rhs.N,
 	}
 
-	vm.push(v)
-}
-
-func (vm *VM) true() {
-	v := Value{ ValueType: Bool, B: true }
 	vm.push(v)
 }
 
