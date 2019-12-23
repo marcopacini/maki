@@ -24,7 +24,7 @@ func (v Value) String() string {
 	switch v.ValueType {
 	case Bool: return strconv.FormatBool(v.B)
 	case Nil: return "Nil"
-	case Number: return strconv.FormatFloat(v.N, 'E', -1, 64)
+	case Number: return strconv.FormatFloat(v.N, 'f', 0, 64)
 	case Object:
 		{
 			if s, ok := v.Ptr.(string); ok {

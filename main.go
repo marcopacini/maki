@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -10,14 +11,21 @@ import (
 	"os"
 )
 
+var debug bool
+
 func main() {
-	if len(os.Args) == 1 {
+	flag.BoolVar(&debug, "debug", false, "debug mode")
+	flag.Parse()
+
+	args := flag.Args()
+
+	if len(args) == 0 {
 		if err := repl(); err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
-	} else if len(os.Args) == 2 {
-		if err := runFile(os.Args[1]); err != nil {
+	} else if len(args) == 1 {
+		if err := runFile(args[0]); err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(1)
 		}
@@ -71,6 +79,10 @@ func interpret(source string) error {
 	pcode, err := compiler.NewCompiler().Compile(source)
 	if err != nil {
 		return err
+	}
+
+	if debug {
+		fmt.Print(pcode)
 	}
 
 	return vm.NewVM(pcode).Run()
