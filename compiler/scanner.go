@@ -121,7 +121,7 @@ func (s *scanner) scanToken() (*Token, error) {
 		eof := &Token{
 			TokenType: Eof,
 			Lexeme:    "",
-			Line:      s.line,
+			Line:      s.line-1,
 		}
 		return eof, nil
 	}
