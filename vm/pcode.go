@@ -29,9 +29,11 @@ type OpCode uint8
 const (
 	OpAdd OpCode = iota
 	OpConstant
+	OpDefineGlobal
 	OpDivide
 	OpEqual
 	OpEqualEqual
+	OpGetGlobal
 	OpGreater
 	OpGreaterEqual
 	OpLess
@@ -51,6 +53,8 @@ func (op OpCode) String() string {
 	switch op {
 	case OpAdd: return "OP_ADD"
 	case OpConstant: return "OP_CONSTANT"
+	case OpDefineGlobal: return "OP_DEFINE_GLOBAL"
+	case OpGetGlobal: return "OP_GET_GLOBAL"
 	case OpMinus: return "OP_MINUS"
 	case OpPop: return "OP_POP"
 	case OpReturn: return "OP_RETURN"
@@ -83,6 +87,12 @@ func (c *PCode) WriteConstant(v Value, line int) {
 	c.Write(OpCode(address), line)
 }
 
+func (c *PCode) WriteIdentifier(identifier string, line int) {
+	v := Value{ ValueType: Object, Ptr: identifier }
+	address := c.Constants.Write(v)
+	c.Write(OpCode(address), line)
+}
+
 func (c PCode) String() string {
 	var s strings.Builder
 
@@ -102,10 +112,13 @@ func (c PCode) String() string {
 		s.WriteString(fmt.Sprintf("%v", c.Code[i]))
 
 		// Skip next code
-		if  c.Code[i] == OpConstant {
-			i++
-			addr := int(c.Code[i])
-			s.WriteString(fmt.Sprintf(" '%v'", c.Constants.At(addr)))
+		switch c.Code[i] {
+		case OpConstant, OpDefineGlobal, OpGetGlobal:
+			{
+				i++
+				addr := int(c.Code[i])
+				s.WriteString(fmt.Sprintf(" '%v'", c.Constants.At(addr)))
+			}
 		}
 
 		s.WriteString("\n")

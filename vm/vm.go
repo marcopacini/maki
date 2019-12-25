@@ -6,6 +6,7 @@ import (
 
 const (
 	StackSize = 256
+	GlobalSize = 64
 )
 
 type VM struct {
@@ -13,6 +14,7 @@ type VM struct {
 	ip int
 	stack [StackSize]Value
 	sp int
+	globals map[string]Value
 }
 
 func NewVM(c *PCode) *VM {
@@ -20,6 +22,7 @@ func NewVM(c *PCode) *VM {
 		PCode: c,
 		ip:    0,
 		sp:    0,
+		globals: make(map[string]Value, GlobalSize),
 	}
 }
 
@@ -50,6 +53,10 @@ func (vm *VM) Run() error {
 			{
 				vm.constant()
 			}
+		case OpDefineGlobal:
+			{
+				vm.defineGlobal()
+			}
 		case OpDivide:
 			{
 				vm.divide()
@@ -57,6 +64,12 @@ func (vm *VM) Run() error {
 		case OpEqualEqual:
 			{
 				if err := vm.equalEqual(); err != nil {
+					return err
+				}
+			}
+		case OpGetGlobal:
+			{
+				if err := vm.getGlobal(); err != nil {
 					return err
 				}
 			}
@@ -126,7 +139,7 @@ func (vm *VM) Run() error {
 			}
 		default:
 			{
-				return fmt.Errorf("maki: runtime error, op code %04d not yet implemented", vm.Code[vm.ip])
+				return fmt.Errorf("maki :: runtime error, op code %04d not yet implemented", vm.Code[vm.ip])
 			}
 		}
 		vm.ip++
@@ -135,7 +148,7 @@ func (vm *VM) Run() error {
 
 func (vm *VM) add() error {
 	rhs, lhs := vm.getOperands()
-	err := fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
+	err := fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 
 	if lhs.ValueType == Number && rhs.ValueType == Number {
 		v := Value{ ValueType: Number, N: lhs.N + rhs.N }
@@ -168,6 +181,12 @@ func (vm *VM) constant() {
 	vm.push(vm.Constants.At(addr))
 }
 
+func (vm *VM) defineGlobal() {
+	vm.ip++
+	identifier, _ := vm.Constants.At(int(vm.Code[vm.ip])).Ptr.(string)
+	vm.globals[identifier] = vm.pop()
+}
+
 func (vm *VM) divide() {
 	rhs := vm.pop()
 	lhs := vm.pop()
@@ -179,7 +198,7 @@ func (vm *VM) divide() {
 func (vm *VM) equalEqual() error {
 	rhs, lhs := vm.getOperands()
 
-	err := fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
+	err := fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 
 	if lhs.ValueType != rhs.ValueType{
 		return err
@@ -210,11 +229,24 @@ func (vm *VM) equalEqual() error {
 	return nil
 }
 
+func (vm *VM) getGlobal() error {
+	vm.ip++
+	identifier, _ := vm.Constants.At(int(vm.Code[vm.ip])).Ptr.(string)
+
+	v, ok := vm.globals[identifier]
+	if !ok {
+		return fmt.Errorf("maki :: runtime error, variable '%s' not defined [line %d]", identifier, vm.getCurrentLine())
+	}
+
+	vm.push(v)
+	return nil
+}
+
 func (vm *VM) notEqual() error {
 	rhs, lhs := vm.getOperands()
 
 	if lhs.ValueType != rhs.ValueType{
-		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
+		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
 	v := Value{ ValueType: Bool, B: false }
@@ -232,7 +264,7 @@ func (vm *VM) greater() error {
 	rhs, lhs := vm.getOperands()
 
 	if lhs.ValueType != Number || rhs.ValueType != Number {
-		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
+		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
 	v := Value{ ValueType: Bool, B: lhs.N > rhs.N }
@@ -245,7 +277,7 @@ func (vm *VM) greaterEqual() error {
 	rhs, lhs := vm.getOperands()
 
 	if lhs.ValueType != Number || rhs.ValueType != Number {
-		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
+		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
 	v := Value{ ValueType: Bool, B: lhs.N >= rhs.N }
@@ -258,7 +290,7 @@ func (vm *VM) less() error {
 	rhs, lhs := vm.getOperands()
 
 	if lhs.ValueType != Number || rhs.ValueType != Number {
-		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
+		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
 	v := Value{ ValueType: Bool, B: lhs.N < rhs.N }
@@ -271,7 +303,7 @@ func (vm *VM) lessEqual() error {
 	rhs, lhs := vm.getOperands()
 
 	if lhs.ValueType != Number || rhs.ValueType != Number {
-		return fmt.Errorf("maki: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
+		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
 	v := Value{ ValueType: Bool, B: lhs.N <= rhs.N }
@@ -284,7 +316,7 @@ func (vm *VM) minus() error {
 	v := vm.top()
 
 	if v.ValueType != Number {
-		return fmt.Errorf("maki : runtime error, operand must be a number [line %d]", vm.getCurrentLine())
+		return fmt.Errorf("maki :: runtime error, operand must be a number [line %d]", vm.getCurrentLine())
 	}
 
 	v.N = -v.N

@@ -84,25 +84,26 @@ type rule struct {
 }
 
 func getRule(tt TokenType) rule {
-	var rules = map[TokenType]rule {
-		Equal: { prefix: nil, infix: (*Compiler).binary, precedence: PrecEquality },
-		EqualEqual: { prefix: nil, infix: (*Compiler).binary, precedence: PrecEquality },
-		False: { prefix: (*Compiler).literal, infix: nil, precedence: PrecNone },
-		Greater: { prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison },
-		GreaterEqual: { prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison },
-		LeftParenthesis: { prefix: (*Compiler).grouping, infix: nil, precedence: PrecNone },
-		Less: { prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison },
-		LessEqual: { prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison },
-		Minus: { prefix: (*Compiler).unary, infix: (*Compiler).binary, precedence: PrecTerm },
-		Nil: { prefix: (*Compiler).literal, infix: nil, precedence: PrecNone },
-		Not: { prefix: (*Compiler).unary, infix: nil, precedence: PrecNone },
-		NotEqual: { prefix: nil, infix: (*Compiler).binary, precedence: PrecEquality },
-		Number: { prefix: (*Compiler).number, infix: nil, precedence: PrecNone },
-		Plus: { prefix: nil, infix: (*Compiler).binary, precedence: PrecTerm },
-		Slash: { prefix: nil, infix: (*Compiler).binary, precedence: PrecFactor },
-		Star: { prefix: nil, infix: (*Compiler).binary, precedence: PrecFactor },
-		String: { prefix: (*Compiler).string, infix: nil, precedence: PrecNone },
-		True: { prefix: (*Compiler).literal, infix: nil, precedence: PrecNone },
+	var rules = map[TokenType]rule{
+		Equal:           {prefix: nil, infix: (*Compiler).binary, precedence: PrecEquality},
+		EqualEqual:      {prefix: nil, infix: (*Compiler).binary, precedence: PrecEquality},
+		False:           {prefix: (*Compiler).literal, infix: nil, precedence: PrecNone},
+		Greater:         {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
+		GreaterEqual:    {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
+		Identifier: 	 {prefix: (*Compiler).identifier, infix: nil, precedence: PrecNone},
+		LeftParenthesis: {prefix: (*Compiler).grouping, infix: nil, precedence: PrecNone},
+		Less:            {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
+		LessEqual:       {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
+		Minus:           {prefix: (*Compiler).unary, infix: (*Compiler).binary, precedence: PrecTerm},
+		Nil:             {prefix: (*Compiler).literal, infix: nil, precedence: PrecNone},
+		Not:             {prefix: (*Compiler).unary, infix: nil, precedence: PrecNone},
+		NotEqual:        {prefix: nil, infix: (*Compiler).binary, precedence: PrecEquality},
+		Number:          {prefix: (*Compiler).number, infix: nil, precedence: PrecNone},
+		Plus:            {prefix: nil, infix: (*Compiler).binary, precedence: PrecTerm},
+		Slash:           {prefix: nil, infix: (*Compiler).binary, precedence: PrecFactor},
+		Star:            {prefix: nil, infix: (*Compiler).binary, precedence: PrecFactor},
+		String:          {prefix: (*Compiler).string, infix: nil, precedence: PrecNone},
+		True:            {prefix: (*Compiler).literal, infix: nil, precedence: PrecNone},
 	}
 
 	if r, ok := rules[tt]; ok {
@@ -263,6 +264,10 @@ func (c *Compiler) statement() error {
 		return c.print()
 	}
 
+	if c.match(Var) {
+		return c.variable()
+	}
+
 	if err := c.expression(); err != nil {
 		return err
 	}
@@ -291,6 +296,38 @@ func (c *Compiler) unary() error {
 	case Not: c.emitByte(vm.OpNot)
 	case Minus: c.emitByte(vm.OpMinus)
 	}
+
+	return nil
+}
+
+func (c *Compiler) variable() error {
+	if err := c.consume(Identifier, "error at line %d: expected identifier", c.current.Line); err != nil {
+		return err
+	}
+	identifier := c.previous.Lexeme
+
+	if c.match(Equal) {
+		if err := c.expression(); err != nil {
+			return err
+		}
+	} else {
+		v := vm.Value{ ValueType: vm.Nil }
+		c.emitConstant(v)
+	}
+	if err := c.consume(Semicolon, "error at line %d: expected semicolon", c.current.Line); err != nil {
+		return err
+	}
+
+	c.emitByte(vm.OpDefineGlobal)
+	c.WriteIdentifier(identifier, c.current.Line)
+
+	return nil
+}
+
+func (c *Compiler) identifier() error {
+	identifier := c.previous.Lexeme
+	c.emitByte(vm.OpGetGlobal)
+	c.WriteIdentifier(identifier, c.current.Line)
 
 	return nil
 }
