@@ -46,6 +46,7 @@ const (
 	OpPop
 	OpPrint
 	OpReturn
+	OpSetGlobal
 	OpSubtract
 )
 
@@ -55,6 +56,7 @@ func (op OpCode) String() string {
 	case OpConstant: return "OP_CONSTANT"
 	case OpDefineGlobal: return "OP_DEFINE_GLOBAL"
 	case OpGetGlobal: return "OP_GET_GLOBAL"
+	case OpSetGlobal: return "OP_SET_GLOBAL"
 	case OpMinus: return "OP_MINUS"
 	case OpPop: return "OP_POP"
 	case OpReturn: return "OP_RETURN"
@@ -113,7 +115,7 @@ func (c PCode) String() string {
 
 		// Skip next code
 		switch c.Code[i] {
-		case OpConstant, OpDefineGlobal, OpGetGlobal:
+		case OpConstant, OpDefineGlobal, OpGetGlobal, OpSetGlobal:
 			{
 				i++
 				addr := int(c.Code[i])

@@ -271,6 +271,7 @@ func (c *Compiler) statement() error {
 	if err := c.expression(); err != nil {
 		return err
 	}
+
 	if err := c.consume(Semicolon, "error at line %d: expected semicolon", c.current.Line); err != nil {
 		return err
 	}
@@ -326,7 +327,18 @@ func (c *Compiler) variable() error {
 
 func (c *Compiler) identifier() error {
 	identifier := c.previous.Lexeme
-	c.emitByte(vm.OpGetGlobal)
+
+	if c.match(Equal) {
+		// assignment
+		if err := c.expression(); err != nil {
+			return err
+		}
+		c.emitByte(vm.OpSetGlobal)
+	} else {
+		// reading identifier
+		c.emitByte(vm.OpGetGlobal)
+	}
+
 	c.WriteIdentifier(identifier, c.current.Line)
 
 	return nil

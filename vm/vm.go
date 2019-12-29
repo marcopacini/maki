@@ -133,6 +133,12 @@ func (vm *VM) Run() error {
 			{
 				return nil
 			}
+		case OpSetGlobal:
+			{
+				if err := vm.setGlobal(); err != nil {
+					return err
+				}
+			}
 		case OpSubtract:
 			{
 				vm.subtract()
@@ -239,6 +245,19 @@ func (vm *VM) getGlobal() error {
 	}
 
 	vm.push(v)
+	return nil
+}
+
+func (vm *VM) setGlobal() error {
+	vm.ip++
+	identifier, _ := vm.Constants.At(int(vm.Code[vm.ip])).Ptr.(string)
+
+	if _, ok := vm.globals[identifier]; !ok {
+		return fmt.Errorf("maki :: runtime error, variable '%s' not defined [line %d]", identifier, vm.getCurrentLine())
+	}
+
+	vm.globals[identifier] = *vm.top()
+
 	return nil
 }
 
