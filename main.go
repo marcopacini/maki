@@ -49,7 +49,7 @@ func repl() error {
 		}
 
 		if err := interpret(line); err != nil {
-			fmt.Println(err)
+			fmt.Println("maki ::", err)
 		}
 	}
 

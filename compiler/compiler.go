@@ -118,6 +118,8 @@ func getRule(tt TokenType) rule {
 }
 
 func (c *Compiler) parsePrecedence(prec precedence) error {
+	last := c.previous
+
 	if err := c.advance(); err != nil {
 		return err
 	}
@@ -125,7 +127,7 @@ func (c *Compiler) parsePrecedence(prec precedence) error {
 	prefix := getRule(c.previous.TokenType).prefix
 
 	if prefix == nil {
-		return fmt.Errorf("error at line %d: expected expression", c.current.Line)
+		return fmt.Errorf("compile error, expected expression after '%s' [line %d]", last.Lexeme, c.current.Line)
 	}
 
 	assignable := prec <= PrecAssignment
@@ -146,7 +148,7 @@ func (c *Compiler) parsePrecedence(prec precedence) error {
 	}
 
 	if assignable && c.current.TokenType == Equal {
-		return fmt.Errorf("error at line %d: invalid assignment target", c.current.Line)
+		return fmt.Errorf("compile error, invalid assignment target [line %d]", c.current.Line)
 	}
 
 	return nil
@@ -166,7 +168,7 @@ func (c *Compiler) Compile(source string) (*vm.PCode, error) {
 		}
 	}
 
-	if err := c.consume(Eof, "error at line %d: expected EOF", c.current.Line); err != nil {
+	if err := c.consume(Eof, "compile error, expected EOF [line %d]", c.current.Line); err != nil {
 		c.hadError = true
 		return nil, err
 	}
@@ -214,7 +216,7 @@ func (c *Compiler) grouping(_ bool) error {
 	if err := c.expression(false); err != nil {
 		return err
 	}
-	return c.consume(RightParenthesis, "Expect ')' after expression")
+	return c.consume(RightParenthesis, "compiler error, expect ')' after expression [line %d]", c.current.Line)
 }
 
 func (c *Compiler) literal(_ bool) error {
@@ -277,7 +279,7 @@ func (c *Compiler) statement() error {
 		return err
 	}
 
-	if err := c.consume(Semicolon, "error at line %d: expected semicolon", c.current.Line); err != nil {
+	if err := c.consume(Semicolon, "compile error, expected semicolon [line %d]", c.current.Line); err != nil {
 		return err
 	}
 	c.emitByte(vm.OpPop)
@@ -307,7 +309,7 @@ func (c *Compiler) unary(_ bool) error {
 }
 
 func (c *Compiler) variable() error {
-	if err := c.consume(Identifier, "error at line %d: expected identifier", c.current.Line); err != nil {
+	if err := c.consume(Identifier, "compile error, expected identifier [line %d]", c.current.Line); err != nil {
 		return err
 	}
 	identifier := c.previous.Lexeme
@@ -320,7 +322,7 @@ func (c *Compiler) variable() error {
 		v := vm.Value{ ValueType: vm.Nil }
 		c.emitConstant(v)
 	}
-	if err := c.consume(Semicolon, "error at line %d: expected semicolon", c.current.Line); err != nil {
+	if err := c.consume(Semicolon, "compile error, expected semicolon [line %d]", c.current.Line); err != nil {
 		return err
 	}
 

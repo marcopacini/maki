@@ -219,7 +219,7 @@ func (s *scanner) scanToken() (*Token, error) {
 			if s.isNext('*') {
 				for ;; {
 					if s.isEnd() {
-						return nil, fmt.Errorf("comment not terminated at line %d", s.line)
+						return nil, fmt.Errorf("scanner error, comment not terminated [line %d]", s.line)
 					}
 
 					r = s.advance()
@@ -252,7 +252,7 @@ func (s *scanner) scanToken() (*Token, error) {
 			}
 
 			if s.isEnd() {
-				return nil, fmt.Errorf("unterminated string at line %d", s.line)
+				return nil, fmt.Errorf("scanner error, unterminated string [line %d]", s.line)
 			}
 			_ = s.advance()
 
@@ -293,7 +293,7 @@ func (s *scanner) scanToken() (*Token, error) {
 				return s.makeToken(Identifier), nil
 			}
 
-			return nil, fmt.Errorf("unkown character '%v' at line %d", string(r), s.line)
+			return nil, fmt.Errorf("scanner error, unkown character '%v' [line %d]", string(r), s.line)
 		}
 	}
 }
