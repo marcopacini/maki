@@ -27,7 +27,7 @@ func NewVM(c *PCode) *VM {
 }
 
 func (vm *VM) top() *Value {
-	return &vm.stack[0]
+	return &vm.stack[vm.sp-1]
 }
 
 func (vm *VM) push(v Value) {

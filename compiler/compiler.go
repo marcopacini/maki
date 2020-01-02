@@ -78,8 +78,8 @@ const (
 )
 
 type rule struct {
-	prefix func(*Compiler) error
-	infix func(*Compiler) error
+	prefix func(*Compiler, bool) error
+	infix func(*Compiler, bool) error
 	precedence
 }
 
@@ -128,7 +128,8 @@ func (c *Compiler) parsePrecedence(prec precedence) error {
 		return fmt.Errorf("error at line %d: expected expression", c.current.Line)
 	}
 
-	if err := prefix(c); err != nil {
+	assignable := prec <= PrecAssignment
+	if err := prefix(c, assignable); err != nil {
 		return err
 	}
 
@@ -139,9 +140,13 @@ func (c *Compiler) parsePrecedence(prec precedence) error {
 
 		infix := getRule(c.previous.TokenType).infix
 
-		if err := infix(c); err != nil {
+		if err := infix(c, false); err != nil {
 			return err
 		}
+	}
+
+	if assignable && c.current.TokenType == Equal {
+		return fmt.Errorf("error at line %d: invalid assignment target", c.current.Line)
 	}
 
 	return nil
@@ -156,7 +161,7 @@ func (c *Compiler) Compile(source string) (*vm.PCode, error) {
 	}
 
 	for !c.match(Eof) {
-		if err := c.declaration(); err != nil {
+		if err := c.declaration(false); err != nil {
 			return nil, err
 		}
 	}
@@ -172,7 +177,7 @@ func (c *Compiler) Compile(source string) (*vm.PCode, error) {
 	return c.PCode, nil
 }
 
-func (c *Compiler) binary()	error {
+func (c *Compiler) binary(_ bool)	error {
 	tt := c.previous.TokenType
 	if err := c.parsePrecedence(getRule(tt).precedence); err != nil {
 		return err
@@ -193,7 +198,7 @@ func (c *Compiler) binary()	error {
 	return nil
 }
 
-func (c *Compiler) expression() error {
+func (c *Compiler) expression(_ bool) error {
 	if err := c.parsePrecedence(PrecAssignment); err != nil {
 		return err
 	}
@@ -201,18 +206,18 @@ func (c *Compiler) expression() error {
 	return nil
 }
 
-func (c *Compiler) declaration() error {
+func (c *Compiler) declaration(_ bool) error {
 	return c.statement()
 }
 
-func (c *Compiler) grouping() error {
-	if err := c.expression(); err != nil {
+func (c *Compiler) grouping(_ bool) error {
+	if err := c.expression(false); err != nil {
 		return err
 	}
 	return c.consume(RightParenthesis, "Expect ')' after expression")
 }
 
-func (c *Compiler) literal() error {
+func (c *Compiler) literal(_ bool) error {
 	switch c.previous.TokenType {
 	case False:
 		{
@@ -234,7 +239,7 @@ func (c *Compiler) literal() error {
 	return nil
 }
 
-func (c *Compiler) number()	error {
+func (c *Compiler) number(_ bool)	error {
 	n, err := strconv.ParseFloat(c.previous.Lexeme, 64)
 	if err != nil {
 		return err
@@ -247,7 +252,7 @@ func (c *Compiler) number()	error {
 }
 
 func (c *Compiler) print() error {
-	if err := c.expression(); err != nil {
+	if err := c.expression(false); err != nil {
 		return err
 	}
 
@@ -268,7 +273,7 @@ func (c *Compiler) statement() error {
 		return c.variable()
 	}
 
-	if err := c.expression(); err != nil {
+	if err := c.expression(false); err != nil {
 		return err
 	}
 
@@ -280,13 +285,13 @@ func (c *Compiler) statement() error {
 	return nil
 }
 
-func (c *Compiler) string() error {
+func (c *Compiler) string(_ bool) error {
 	v := vm.Value{ ValueType: vm.Object, Ptr: c.previous.Lexeme }
 	c.emitConstant(v)
 	return nil
 }
 
-func (c *Compiler) unary() error {
+func (c *Compiler) unary(_ bool) error {
 	tt := c.previous.TokenType
 
 	if err := c.parsePrecedence(PrecUnary); err != nil {
@@ -308,7 +313,7 @@ func (c *Compiler) variable() error {
 	identifier := c.previous.Lexeme
 
 	if c.match(Equal) {
-		if err := c.expression(); err != nil {
+		if err := c.expression(false); err != nil {
 			return err
 		}
 	} else {
@@ -325,12 +330,12 @@ func (c *Compiler) variable() error {
 	return nil
 }
 
-func (c *Compiler) identifier() error {
+func (c *Compiler) identifier(assignable bool) error {
 	identifier := c.previous.Lexeme
 
-	if c.match(Equal) {
+	if c.match(Equal) && assignable {
 		// assignment
-		if err := c.expression(); err != nil {
+		if err := c.expression(false); err != nil {
 			return err
 		}
 		c.emitByte(vm.OpSetGlobal)

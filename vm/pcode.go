@@ -58,6 +58,7 @@ func (op OpCode) String() string {
 	case OpGetGlobal: return "OP_GET_GLOBAL"
 	case OpSetGlobal: return "OP_SET_GLOBAL"
 	case OpMinus: return "OP_MINUS"
+	case OpMultiply: return "OP_MULTIPLY"
 	case OpPop: return "OP_POP"
 	case OpReturn: return "OP_RETURN"
 	case OpPrint: return "OP_PRINT"
