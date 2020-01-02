@@ -37,6 +37,7 @@ func main() {
 
 func repl() error {
 	r := bufio.NewReader(os.Stdin)
+	vm := vm.NewVM()
 
 	for ;; {
 		fmt.Print("> ")
@@ -48,7 +49,7 @@ func repl() error {
 			return err
 		}
 
-		if err := interpret(line); err != nil {
+		if err := interpret(vm, line); err != nil {
 			fmt.Println("maki ::", err)
 		}
 	}
@@ -72,10 +73,10 @@ func runFile(path string) error {
 		return err
 	}
 
-	return interpret(string(b))
+	return interpret(vm.NewVM(), string(b))
 }
 
-func interpret(source string) error {
+func interpret(vm *vm.VM, source string) error {
 	pcode, err := compiler.NewCompiler().Compile(source)
 	if err != nil {
 		return err
@@ -85,5 +86,5 @@ func interpret(source string) error {
 		fmt.Print(pcode)
 	}
 
-	return vm.NewVM(pcode).Run()
+	return vm.Run(pcode)
 }

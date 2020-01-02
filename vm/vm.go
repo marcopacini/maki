@@ -17,9 +17,9 @@ type VM struct {
 	globals map[string]Value
 }
 
-func NewVM(c *PCode) *VM {
+func NewVM() *VM {
 	return &VM{
-		PCode: c,
+		PCode: nil,
 		ip:    0,
 		sp:    0,
 		globals: make(map[string]Value, GlobalSize),
@@ -40,7 +40,11 @@ func (vm *VM) pop() Value {
 	return vm.stack[vm.sp]
 }
 
-func (vm *VM) Run() error {
+func (vm *VM) Run(pcode *PCode) error {
+	vm.ip = 0
+	vm.sp = 0
+	vm.PCode = pcode
+
 	for ;; {
 		switch vm.Code[vm.ip] {
 		case OpAdd:
