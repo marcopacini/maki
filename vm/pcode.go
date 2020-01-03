@@ -55,12 +55,15 @@ func (op OpCode) String() string {
 	case OpAdd: return "OP_ADD"
 	case OpConstant: return "OP_CONSTANT"
 	case OpDefineGlobal: return "OP_DEFINE_GLOBAL"
+	case OpEqualEqual: return "OP_EQUAL_EQUAL"
 	case OpGetGlobal: return "OP_GET_GLOBAL"
-	case OpSetGlobal: return "OP_SET_GLOBAL"
+
 	case OpMinus: return "OP_MINUS"
 	case OpMultiply: return "OP_MULTIPLY"
-	case OpPop: return "OP_POP"
+
 	case OpReturn: return "OP_RETURN"
+	case OpSetGlobal: return "OP_SET_GLOBAL"
+	case OpPop: return "OP_POP"
 	case OpPrint: return "OP_PRINT"
 	default: return "OP_UNKNOWN"
 	}

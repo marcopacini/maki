@@ -218,7 +218,7 @@ func (vm *VM) equalEqual() error {
 
 	switch lhs.ValueType {
 	case Bool: v.B = lhs.B == rhs.B
-	case Number: v.B = lhs.N == lhs.N
+	case Number: v.B = lhs.N == rhs.N
 	case Object:
 		{
 			ls, ok := lhs.Ptr.(string)
