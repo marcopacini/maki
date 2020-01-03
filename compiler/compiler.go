@@ -61,8 +61,8 @@ type Local struct {
 
 type Scope struct {
 	locals [ScopeSize]Local
-	count int
-	depth int
+	count  int
+	depth  int
 }
 
 func NewScope() *Scope {
@@ -125,22 +125,22 @@ func NewCompiler() *Compiler {
 type precedence uint8
 
 const (
-	PrecNone precedence = iota
-	PrecAssignment	// =
-	PrecOr			// or
-	PrecAnd			// and
-	PrecEquality	// == !=
-	PrecComparison	// < > <= >=
-	PrecTerm		// + -
-	PrecFactor		// * /
-	PrecUnary		// not !
-	PrecCall		// . ()
+	PrecNone       precedence = iota
+	PrecAssignment            // =
+	PrecOr                    // or
+	PrecAnd                   // and
+	PrecEquality              // == !=
+	PrecComparison            // < > <= >=
+	PrecTerm                  // + -
+	PrecFactor                // * /
+	PrecUnary                 // not !
+	PrecCall                  // . ()
 	PrecPrimary
 )
 
 type rule struct {
 	prefix func(*Compiler, bool) error
-	infix func(*Compiler, bool) error
+	infix  func(*Compiler, bool) error
 	precedence
 }
 
@@ -151,7 +151,7 @@ func getRule(tt TokenType) rule {
 		False:           {prefix: (*Compiler).literal, infix: nil, precedence: PrecNone},
 		Greater:         {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
 		GreaterEqual:    {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
-		Identifier: 	 {prefix: (*Compiler).identifier, infix: nil, precedence: PrecNone},
+		Identifier:      {prefix: (*Compiler).identifier, infix: nil, precedence: PrecNone},
 		LeftParenthesis: {prefix: (*Compiler).grouping, infix: nil, precedence: PrecNone},
 		Less:            {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
 		LessEqual:       {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
@@ -238,22 +238,31 @@ func (c *Compiler) Compile(source string) (*vm.PCode, error) {
 	return c.PCode, nil
 }
 
-func (c *Compiler) binary(_ bool)	error {
+func (c *Compiler) binary(_ bool) error {
 	tt := c.previous.TokenType
 	if err := c.parsePrecedence(getRule(tt).precedence); err != nil {
 		return err
 	}
 
 	switch tt {
-	case EqualEqual: c.emitByte(vm.OpEqualEqual)
-	case Greater: c.emitByte(vm.OpGreater)
-	case GreaterEqual: c.emitByte(vm.OpGreaterEqual)
-	case Less: c.emitByte(vm.OpLess)
-	case LessEqual: c.emitByte(vm.OpLessEqual)
-	case Minus:	c.emitByte(vm.OpSubtract)
-	case Plus: c.emitByte(vm.OpAdd)
-	case Star: c.emitByte(vm.OpMultiply)
-	case Slash: c.emitByte(vm.OpDivide)
+	case EqualEqual:
+		c.emitByte(vm.OpEqualEqual)
+	case Greater:
+		c.emitByte(vm.OpGreater)
+	case GreaterEqual:
+		c.emitByte(vm.OpGreaterEqual)
+	case Less:
+		c.emitByte(vm.OpLess)
+	case LessEqual:
+		c.emitByte(vm.OpLessEqual)
+	case Minus:
+		c.emitByte(vm.OpSubtract)
+	case Plus:
+		c.emitByte(vm.OpAdd)
+	case Star:
+		c.emitByte(vm.OpMultiply)
+	case Slash:
+		c.emitByte(vm.OpDivide)
 	}
 
 	return nil
@@ -282,17 +291,17 @@ func (c *Compiler) literal(_ bool) error {
 	switch c.previous.TokenType {
 	case False:
 		{
-			v := vm.Value{ ValueType: vm.Bool, B: false }
+			v := vm.Value{ValueType: vm.Bool, B: false}
 			c.emitConstant(v)
 		}
 	case Nil:
 		{
-			v := vm.Value{ ValueType: vm.Nil }
+			v := vm.Value{ValueType: vm.Nil}
 			c.emitConstant(v)
 		}
 	case True:
 		{
-			v := vm.Value{ ValueType: vm.Bool, B: true }
+			v := vm.Value{ValueType: vm.Bool, B: true}
 			c.emitConstant(v)
 		}
 	}
@@ -300,13 +309,13 @@ func (c *Compiler) literal(_ bool) error {
 	return nil
 }
 
-func (c *Compiler) number(_ bool)	error {
+func (c *Compiler) number(_ bool) error {
 	n, err := strconv.ParseFloat(c.previous.Lexeme, 64)
 	if err != nil {
 		return err
 	}
 
-	v := vm.Value{ ValueType: vm.Number, N: n }
+	v := vm.Value{ValueType: vm.Number, N: n}
 	c.emitConstant(v)
 
 	return nil
@@ -375,7 +384,7 @@ func (c *Compiler) block() error {
 }
 
 func (c *Compiler) string(_ bool) error {
-	v := vm.Value{ ValueType: vm.Object, Ptr: c.previous.Lexeme }
+	v := vm.Value{ValueType: vm.Object, Ptr: c.previous.Lexeme}
 	c.emitConstant(v)
 	return nil
 }
@@ -388,8 +397,10 @@ func (c *Compiler) unary(_ bool) error {
 	}
 
 	switch tt {
-	case Not: c.emitByte(vm.OpNot)
-	case Minus: c.emitByte(vm.OpMinus)
+	case Not:
+		c.emitByte(vm.OpNot)
+	case Minus:
+		c.emitByte(vm.OpMinus)
 	}
 
 	return nil
@@ -413,7 +424,7 @@ func (c *Compiler) variable() error {
 			return err
 		}
 	} else {
-		v := vm.Value{ ValueType: vm.Nil }
+		v := vm.Value{ValueType: vm.Nil}
 		c.emitConstant(v)
 	}
 	if err := c.consume(Semicolon, "compile error, expected semicolon [line %d]", c.current.Line); err != nil {

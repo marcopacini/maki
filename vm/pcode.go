@@ -52,20 +52,32 @@ const (
 
 func (op OpCode) String() string {
 	switch op {
-	case OpAdd: return "OP_ADD"
-	case OpConstant: return "OP_CONSTANT"
-	case OpDefineGlobal: return "OP_DEFINE_GLOBAL"
-	case OpEqualEqual: return "OP_EQUAL_EQUAL"
-	case OpGetGlobal: return "OP_GET_GLOBAL"
+	case OpAdd:
+		return "OP_ADD"
+	case OpConstant:
+		return "OP_CONSTANT"
+	case OpDefineGlobal:
+		return "OP_DEFINE_GLOBAL"
+	case OpEqualEqual:
+		return "OP_EQUAL_EQUAL"
+	case OpGetGlobal:
+		return "OP_GET_GLOBAL"
 
-	case OpMinus: return "OP_MINUS"
-	case OpMultiply: return "OP_MULTIPLY"
+	case OpMinus:
+		return "OP_MINUS"
+	case OpMultiply:
+		return "OP_MULTIPLY"
 
-	case OpReturn: return "OP_RETURN"
-	case OpSetGlobal: return "OP_SET_GLOBAL"
-	case OpPop: return "OP_POP"
-	case OpPrint: return "OP_PRINT"
-	default: return "OP_UNKNOWN"
+	case OpReturn:
+		return "OP_RETURN"
+	case OpSetGlobal:
+		return "OP_SET_GLOBAL"
+	case OpPop:
+		return "OP_POP"
+	case OpPrint:
+		return "OP_PRINT"
+	default:
+		return "OP_UNKNOWN"
 	}
 }
 
@@ -94,7 +106,7 @@ func (c *PCode) WriteConstant(v Value, line int) {
 }
 
 func (c *PCode) WriteIdentifier(identifier string, line int) {
-	v := Value{ ValueType: Object, Ptr: identifier }
+	v := Value{ValueType: Object, Ptr: identifier}
 	address := c.Constants.Write(v)
 	c.Write(OpCode(address), line)
 }

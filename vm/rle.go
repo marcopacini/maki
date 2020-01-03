@@ -5,7 +5,7 @@ import "fmt"
 type node struct {
 	Value int
 	Count int
-	next *node
+	next  *node
 }
 
 type RLE struct {
@@ -29,7 +29,7 @@ func (r *RLE) Add(val int) {
 			n := &node{
 				Value: val,
 				Count: 1,
-				next: nil,
+				next:  nil,
 			}
 
 			r.tail.next = n
@@ -39,7 +39,7 @@ func (r *RLE) Add(val int) {
 		n := &node{
 			Value: val,
 			Count: 1,
-			next: nil,
+			next:  nil,
 		}
 
 		r.head = n

@@ -37,9 +37,9 @@ func main() {
 
 func repl() error {
 	r := bufio.NewReader(os.Stdin)
-	vm := vm.NewVM()
+	maki := vm.NewVM()
 
-	for ;; {
+	for {
 		fmt.Print("> ")
 		line, err := r.ReadString('\n')
 		if err != nil {
@@ -49,7 +49,7 @@ func repl() error {
 			return err
 		}
 
-		if err := interpret(vm, line); err != nil {
+		if err := interpret(maki, line); err != nil {
 			fmt.Println("maki ::", err)
 		}
 	}

@@ -22,13 +22,13 @@ func makeValue(i interface{}) Value {
 }
 
 func TestArray_Write(t *testing.T) {
-	tcs := []struct{
+	tcs := []struct {
 		name string
 		init []interface{}
-	} {
+	}{
 		{
 			name: "Happy Path",
-			init: []interface{} { 3.14, true, false },
+			init: []interface{}{3.14, true, false},
 		},
 	}
 
@@ -57,18 +57,18 @@ func TestArray_Write(t *testing.T) {
 }
 
 func TestArray_At(t *testing.T) {
-	tcs := []struct{
-		name string
-		init []interface{}
-		input []int
+	tcs := []struct {
+		name   string
+		init   []interface{}
+		input  []int
 		output []interface{}
-		isErr bool
+		isErr  bool
 	}{
 		{
 			name:   "Happy Path",
-			init:   []interface{} { 3.14, true, false },
-			input:  []int{ 0, 1, 2 },
-			output: []interface{} { 3.14, true, false },
+			init:   []interface{}{3.14, true, false},
+			input:  []int{0, 1, 2},
+			output: []interface{}{3.14, true, false},
 			isErr:  false,
 		},
 	}
@@ -88,7 +88,7 @@ func TestArray_At(t *testing.T) {
 			}
 
 			// Test At method
-			for i, _:= range tc.input {
+			for i, _ := range tc.input {
 				v := c.At(tc.input[i])
 				if v != vs[i] {
 					t.Errorf("got %+v, want %+v", v, tc.output[i])

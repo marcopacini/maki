@@ -5,23 +5,23 @@ import (
 )
 
 const (
-	StackSize = 256
+	StackSize  = 256
 	GlobalSize = 64
 )
 
 type VM struct {
 	*PCode
-	ip int
-	stack [StackSize]Value
-	sp int
+	ip      int
+	stack   [StackSize]Value
+	sp      int
 	globals map[string]Value
 }
 
 func NewVM() *VM {
 	return &VM{
-		PCode: nil,
-		ip:    0,
-		sp:    0,
+		PCode:   nil,
+		ip:      0,
+		sp:      0,
 		globals: make(map[string]Value, GlobalSize),
 	}
 }
@@ -45,7 +45,7 @@ func (vm *VM) Run(pcode *PCode) error {
 	vm.sp = 0
 	vm.PCode = pcode
 
-	for ;; {
+	for {
 		switch vm.Code[vm.ip] {
 		case OpAdd:
 			{
@@ -161,7 +161,7 @@ func (vm *VM) add() error {
 	err := fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 
 	if lhs.ValueType == Number && rhs.ValueType == Number {
-		v := Value{ ValueType: Number, N: lhs.N + rhs.N }
+		v := Value{ValueType: Number, N: lhs.N + rhs.N}
 		vm.push(v)
 		return nil
 	}
@@ -177,7 +177,7 @@ func (vm *VM) add() error {
 			return err
 		}
 
-		v := Value{ ValueType: Object, Ptr: ls + rs }
+		v := Value{ValueType: Object, Ptr: ls + rs}
 		vm.push(v)
 		return nil
 	}
@@ -201,7 +201,7 @@ func (vm *VM) divide() {
 	rhs := vm.pop()
 	lhs := vm.pop()
 
-	v := Value{ ValueType: Number, N: lhs.N / rhs.N }
+	v := Value{ValueType: Number, N: lhs.N / rhs.N}
 	vm.push(v)
 }
 
@@ -210,15 +210,17 @@ func (vm *VM) equalEqual() error {
 
 	err := fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 
-	if lhs.ValueType != rhs.ValueType{
+	if lhs.ValueType != rhs.ValueType {
 		return err
 	}
 
-	v := Value{ ValueType: Bool, B: true }
+	v := Value{ValueType: Bool, B: true}
 
 	switch lhs.ValueType {
-	case Bool: v.B = lhs.B == rhs.B
-	case Number: v.B = lhs.N == rhs.N
+	case Bool:
+		v.B = lhs.B == rhs.B
+	case Number:
+		v.B = lhs.N == rhs.N
 	case Object:
 		{
 			ls, ok := lhs.Ptr.(string)
@@ -268,15 +270,17 @@ func (vm *VM) setGlobal() error {
 func (vm *VM) notEqual() error {
 	rhs, lhs := vm.getOperands()
 
-	if lhs.ValueType != rhs.ValueType{
+	if lhs.ValueType != rhs.ValueType {
 		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
-	v := Value{ ValueType: Bool, B: false }
+	v := Value{ValueType: Bool, B: false}
 
 	switch lhs.ValueType {
-	case Bool: v.B = lhs.B != rhs.B
-	case Number: v.B = lhs.N != lhs.N
+	case Bool:
+		v.B = lhs.B != rhs.B
+	case Number:
+		v.B = lhs.N != lhs.N
 	}
 
 	vm.push(v)
@@ -290,7 +294,7 @@ func (vm *VM) greater() error {
 		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
-	v := Value{ ValueType: Bool, B: lhs.N > rhs.N }
+	v := Value{ValueType: Bool, B: lhs.N > rhs.N}
 	vm.push(v)
 
 	return nil
@@ -303,7 +307,7 @@ func (vm *VM) greaterEqual() error {
 		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
-	v := Value{ ValueType: Bool, B: lhs.N >= rhs.N }
+	v := Value{ValueType: Bool, B: lhs.N >= rhs.N}
 	vm.push(v)
 
 	return nil
@@ -316,7 +320,7 @@ func (vm *VM) less() error {
 		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
-	v := Value{ ValueType: Bool, B: lhs.N < rhs.N }
+	v := Value{ValueType: Bool, B: lhs.N < rhs.N}
 	vm.push(v)
 
 	return nil
@@ -329,7 +333,7 @@ func (vm *VM) lessEqual() error {
 		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
-	v := Value{ ValueType: Bool, B: lhs.N <= rhs.N }
+	v := Value{ValueType: Bool, B: lhs.N <= rhs.N}
 	vm.push(v)
 
 	return nil
@@ -349,27 +353,27 @@ func (vm *VM) minus() error {
 func (vm *VM) multiply() {
 	rhs, lhs := vm.getOperands()
 
-	v := Value{ ValueType: Number, N: lhs.N * rhs.N }
+	v := Value{ValueType: Number, N: lhs.N * rhs.N}
 	vm.push(v)
 }
 
 func (vm *VM) nil() {
-	v := Value{ ValueType: Nil }
+	v := Value{ValueType: Nil}
 	vm.push(v)
 }
 
-func (vm *VM) not()	{
+func (vm *VM) not() {
 	lhs := vm.pop()
 
 	switch lhs.ValueType {
 	case Bool:
 		{
-			v := Value{ ValueType: Bool, B: !lhs.B }
+			v := Value{ValueType: Bool, B: !lhs.B}
 			vm.push(v)
 		}
 	default:
 		{
-			v := Value{ ValueType: Bool, B: true }
+			v := Value{ValueType: Bool, B: true}
 			vm.push(v)
 		}
 	}
@@ -380,13 +384,13 @@ func (vm *VM) subtract() {
 
 	v := Value{
 		ValueType: Number,
-		N: lhs.N - rhs.N,
+		N:         lhs.N - rhs.N,
 	}
 
 	vm.push(v)
 }
 
-func (vm *VM) getOperands()	(Value, Value) {
+func (vm *VM) getOperands() (Value, Value) {
 	return vm.pop(), vm.pop()
 }
 

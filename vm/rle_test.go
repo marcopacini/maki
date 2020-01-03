@@ -4,20 +4,20 @@ import "testing"
 
 func TestRLE_Add(t *testing.T) {
 	tcs := []struct {
-		name string
+		name  string
 		input []int
-	} {
+	}{
 		{
-			name: "Happy Path",
-			input: []int{ 1, 2, 2, 3, 3, 3 },
+			name:  "Happy Path",
+			input: []int{1, 2, 2, 3, 3, 3},
 		},
 		{
-			name: "No duplication",
-			input: []int{ 1, 2, 3, 4, 5 },
+			name:  "No duplication",
+			input: []int{1, 2, 3, 4, 5},
 		},
 		{
-			name: "All equal",
-			input: []int{ 42, 42, 42 },
+			name:  "All equal",
+			input: []int{42, 42, 42},
 		},
 	}
 
@@ -43,26 +43,26 @@ func TestRLE_Add(t *testing.T) {
 }
 
 func TestRLE_At(t *testing.T) {
-	tcs := []struct{
-		name string
-		init []int
-		input []int
+	tcs := []struct {
+		name   string
+		init   []int
+		input  []int
 		output []int
-		isErr bool
-	} {
+		isErr  bool
+	}{
 		{
-			name: "Happy Path",
-			init: []int{ 1, 1, 1, 2, 2 },
-			input: []int { 2 },
-			output: []int { 1 },
-			isErr: false,
+			name:   "Happy Path",
+			init:   []int{1, 1, 1, 2, 2},
+			input:  []int{2},
+			output: []int{1},
+			isErr:  false,
 		},
 		{
-			name: "Out of range",
-			init: []int{},
-			input: []int { 0, 1, 5 },
+			name:   "Out of range",
+			init:   []int{},
+			input:  []int{0, 1, 5},
 			output: []int{},
-			isErr: true,
+			isErr:  true,
 		},
 	}
 

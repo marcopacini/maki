@@ -5,48 +5,48 @@ import "fmt"
 type TokenType string
 
 const (
-	And TokenType = "AND"
-	Class = "CLASS"
-	Comma = "COMMA"
-	Dot = "DOT"
-	Else = "ELSE"
-	Eof = "EOF"
-	Equal = "EQUAL"
-	EqualEqual = "EQUAL_EQUAL"
-	False = "FALSE"
-	For = "FOR"
-	Fun = "FUN"
-	Greater = "GREATER"
-	GreaterEqual = "GREATER_EQUAL"
-	Identifier = "IDENTIFIER"
-	If = "IF"
-	LeftBrace = "LEFT_BRACE"
-	LeftParenthesis = "LEFT_PARENTHESIS"
-	LeftSquare = "LEFT_SQUARE"
-	Less = "LESS"
-	LessEqual = "LESS_EQUAL"
-	Let = "LET"
-	Minus = "MINUS"
-	Nil = "NIL"
-	Not = "NOT"
-	NotEqual = "NOT_EQUAL"
-	Number = "NUMBER"
-	Or = "OR"
-	Plus = "PLUS"
-	Print = "PRINT"
-	Return = "RETURN"
-	RightBrace = "RIGHT_BRACE"
-	RightParenthesis = "RIGHT_PARENTHESIS"
-	RightSquare = "RIGHT_SQUARE"
-	Semicolon = "SEMICOLON"
-	Slash = "SLASH"
-	Star = "STAR"
-	String = "STRING"
-	Super = "SUPER"
-	This = "THIS"
-	True = "TRUE"
-	Var = "VAR"
-	While = "WHILE"
+	And              TokenType = "AND"
+	Class                      = "CLASS"
+	Comma                      = "COMMA"
+	Dot                        = "DOT"
+	Else                       = "ELSE"
+	Eof                        = "EOF"
+	Equal                      = "EQUAL"
+	EqualEqual                 = "EQUAL_EQUAL"
+	False                      = "FALSE"
+	For                        = "FOR"
+	Fun                        = "FUN"
+	Greater                    = "GREATER"
+	GreaterEqual               = "GREATER_EQUAL"
+	Identifier                 = "IDENTIFIER"
+	If                         = "IF"
+	LeftBrace                  = "LEFT_BRACE"
+	LeftParenthesis            = "LEFT_PARENTHESIS"
+	LeftSquare                 = "LEFT_SQUARE"
+	Less                       = "LESS"
+	LessEqual                  = "LESS_EQUAL"
+	Let                        = "LET"
+	Minus                      = "MINUS"
+	Nil                        = "NIL"
+	Not                        = "NOT"
+	NotEqual                   = "NOT_EQUAL"
+	Number                     = "NUMBER"
+	Or                         = "OR"
+	Plus                       = "PLUS"
+	Print                      = "PRINT"
+	Return                     = "RETURN"
+	RightBrace                 = "RIGHT_BRACE"
+	RightParenthesis           = "RIGHT_PARENTHESIS"
+	RightSquare                = "RIGHT_SQUARE"
+	Semicolon                  = "SEMICOLON"
+	Slash                      = "SLASH"
+	Star                       = "STAR"
+	String                     = "STRING"
+	Super                      = "SUPER"
+	This                       = "THIS"
+	True                       = "TRUE"
+	Var                        = "VAR"
+	While                      = "WHILE"
 )
 
 var keywords = map[string]TokenType{
@@ -58,7 +58,7 @@ var keywords = map[string]TokenType{
 	"for":    For,
 	"if":     If,
 	"nil":    Nil,
-	"let":	  Let,
+	"let":    Let,
 	"or":     Or,
 	"print":  Print,
 	"return": Return,
@@ -72,33 +72,33 @@ var keywords = map[string]TokenType{
 type Token struct {
 	TokenType
 	Lexeme string
-	Line int
+	Line   int
 }
 
-func (t Token) String()	string {
+func (t Token) String() string {
 	return fmt.Sprintf("%v %v %d", t.TokenType, t.Lexeme, t.Line)
 }
 
 type scanner struct {
-	source []rune
-	start int
+	source  []rune
+	start   int
 	current int
-	line int
+	line    int
 }
 
 func newScanner(s string) *scanner {
 	return &scanner{
-		source: []rune(s),
-		start: 0,
+		source:  []rune(s),
+		start:   0,
 		current: 0,
-		line: 1,
+		line:    1,
 	}
 }
 
 func (s *scanner) Scan() ([]Token, error) {
 	ts := make([]Token, 0)
 
-	for ;; {
+	for {
 		t, err := s.scanToken()
 		if err != nil {
 			return nil, err
@@ -121,7 +121,7 @@ func (s *scanner) scanToken() (*Token, error) {
 		eof := &Token{
 			TokenType: Eof,
 			Lexeme:    "",
-			Line:      s.line-1,
+			Line:      s.line - 1,
 		}
 		return eof, nil
 	}
@@ -217,7 +217,7 @@ func (s *scanner) scanToken() (*Token, error) {
 
 			// Multi-line comment
 			if s.isNext('*') {
-				for ;; {
+				for {
 					if s.isEnd() {
 						return nil, fmt.Errorf("scanner error, comment not terminated [line %d]", s.line)
 					}
@@ -258,8 +258,8 @@ func (s *scanner) scanToken() (*Token, error) {
 
 			t := &Token{
 				TokenType: String,
-				Lexeme: string(s.source[s.start+1:s.current-1]),
-				Line: s.line,
+				Lexeme:    string(s.source[s.start+1 : s.current-1]),
+				Line:      s.line,
 			}
 			return t, nil
 		}
