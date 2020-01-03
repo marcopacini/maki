@@ -207,95 +207,109 @@ func (s *scanner) scanToken() (*Token, error) {
 		}
 	case '/':
 		{
-			// Single-line comment
-			if s.isNext('/') {
-				for s.peek() != '\n' && !s.isEnd() {
-					_ = s.advance()
-				}
-				return s.scanToken()
-			}
-
-			// Multi-line comment
-			if s.isNext('*') {
-				for {
-					if s.isEnd() {
-						return nil, fmt.Errorf("scanner error, comment not terminated [line %d]", s.line)
-					}
-
-					r = s.advance()
-					switch r {
-					case '\n':
-						{
-							s.line++
-							break
-						}
-					case '*':
-						{
-							if s.peek() == '/' {
-								_ = s.advance()
-								return s.scanToken()
-							}
-						}
-					}
-				}
-			}
-
-			return s.makeToken(Slash), nil
+			return s.scanComment()
 		}
 	case '"':
 		{
-			for s.peek() != '"' && !s.isEnd() {
-				if s.peek() == '\n' {
-					s.line++
-				}
-				_ = s.advance()
-			}
-
-			if s.isEnd() {
-				return nil, fmt.Errorf("scanner error, unterminated string [line %d]", s.line)
-			}
-			_ = s.advance()
-
-			t := &Token{
-				TokenType: String,
-				Lexeme:    string(s.source[s.start+1 : s.current-1]),
-				Line:      s.line,
-			}
-			return t, nil
+			return s.scanString()
 		}
 	default:
 		{
 			if isDigit(r) {
-				for isDigit(s.peek()) {
-					_ = s.advance()
-				}
-
-				if s.peek() == '.' && isDigit(s.peekNext()) {
-					s.advance()
-
-					for isDigit(s.peek()) {
-						s.advance()
-					}
-				}
-
-				return s.makeToken(Number), nil
+				return s.scanDigit()
 			}
-
 			if isLetter(r) {
-				for isLetter(s.peek()) || isDigit(s.peek()) {
-					s.advance()
-				}
-
-				if t, ok := keywords[string(s.source[s.start:s.current])]; ok {
-					return s.makeToken(t), nil
-				}
-
-				return s.makeToken(Identifier), nil
+				return s.scanIdentifier()
 			}
-
-			return nil, fmt.Errorf("scanner error, unkown character '%v' [line %d]", string(r), s.line)
+			return nil, fmt.Errorf("scanner error, unknown character '%v' [line %d]", string(r), s.line)
 		}
 	}
+}
+
+func (s *scanner) scanComment() (*Token, error) {
+	// Single-line comment
+	if s.isNext('/') {
+		for s.peek() != '\n' && !s.isEnd() {
+			_ = s.advance()
+		}
+		return s.scanToken()
+	}
+
+	// Multi-line comment
+	if s.isNext('*') {
+		for {
+			if s.isEnd() {
+				return nil, fmt.Errorf("scanner error, comment not terminated [line %d]", s.line)
+			}
+
+			r := s.advance()
+			switch r {
+			case '\n':
+				{
+					s.line++
+					break
+				}
+			case '*':
+				{
+					if s.peek() == '/' {
+						_ = s.advance()
+						return s.scanToken()
+					}
+				}
+			}
+		}
+	}
+
+	return s.makeToken(Slash), nil
+}
+
+func (s *scanner) scanString() (*Token, error) {
+	for s.peek() != '"' && !s.isEnd() {
+		if s.peek() == '\n' {
+			s.line++
+		}
+		_ = s.advance()
+	}
+
+	if s.isEnd() {
+		return nil, fmt.Errorf("scanner error, unterminated string [line %d]", s.line)
+	}
+	_ = s.advance()
+
+	t := &Token{
+		TokenType: String,
+		Lexeme:    string(s.source[s.start+1 : s.current-1]),
+		Line:      s.line,
+	}
+	return t, nil
+}
+
+func (s *scanner) scanDigit() (*Token, error) {
+	for isDigit(s.peek()) {
+		_ = s.advance()
+	}
+
+	if s.peek() == '.' && isDigit(s.peekNext()) {
+		s.advance()
+
+		for isDigit(s.peek()) {
+			s.advance()
+		}
+	}
+
+	return s.makeToken(Number), nil
+}
+
+func (s *scanner) scanIdentifier() (*Token, error) {
+	for isLetter(s.peek()) || isDigit(s.peek()) {
+		s.advance()
+	}
+
+	if t, ok := keywords[string(s.source[s.start:s.current])]; ok {
+		return s.makeToken(t), nil
+	}
+
+	return s.makeToken(Identifier), nil
 }
 
 func (s *scanner) isEnd() bool {
