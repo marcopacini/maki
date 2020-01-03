@@ -1,0 +1,2 @@
+print "Hello, World!"; // expect: Hello, World!
+print "Hello," + " " + "Maki!"; // expect: Hello, Maki!
