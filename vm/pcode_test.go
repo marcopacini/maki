@@ -88,7 +88,7 @@ func TestArray_At(t *testing.T) {
 			}
 
 			// Test At method
-			for i, _ := range tc.input {
+			for i := range tc.input {
 				v := c.At(tc.input[i])
 				if v != vs[i] {
 					t.Errorf("got %+v, want %+v", v, tc.output[i])

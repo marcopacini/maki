@@ -73,7 +73,7 @@ func TestRLE_At(t *testing.T) {
 				rle.Add(v)
 			}
 
-			for i, _ := range tc.input {
+			for i := range tc.input {
 				v, err := rle.At(tc.input[i])
 				if tc.isErr {
 					if err == nil {
