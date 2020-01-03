@@ -15,3 +15,6 @@ if [ $FAILS -ne 0 ]
 then
   exit 1
 fi
+
+echo " :: TESTING PASSED :: "
+exit 0

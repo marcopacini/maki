@@ -1,0 +1,8 @@
+print true == true; // expect: true
+print true == false; // expect: false
+print 42 == 42; // expect: true
+print 42 == 0; // expect: false
+print 3.14 == 3.14; // expect: true
+print 3.14 == 2.71; // expect: false
+print "Hello, World!" == "Hello, World!"; // expect: true
+print "Hello, World!" == "Hello, Maki!"; // expect: false

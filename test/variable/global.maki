@@ -2,6 +2,6 @@ var b = true;
 var n = 10;
 var s = "Hello, World";
 
-print b; // expect: false
+print b; // expect: true
 print n; // expect: 10
 print s; // expect: Hello, World
