@@ -6,11 +6,12 @@ import (
 	"strconv"
 )
 
+const ScopeSize = 256
+
 type parser struct {
 	*scanner
 	current  *Token
 	previous *Token
-	hadError bool
 }
 
 func newParser(source string) *parser {
@@ -18,7 +19,6 @@ func newParser(source string) *parser {
 		scanner:  newScanner(source),
 		current:  nil,
 		previous: nil,
-		hadError: false,
 	}
 }
 
@@ -31,6 +31,10 @@ func (p *parser) advance() error {
 	}
 
 	return nil
+}
+
+func (p *parser) check(tt TokenType) bool {
+	return p.current.TokenType == tt
 }
 
 func (p *parser) match(tt TokenType) bool {
@@ -50,14 +54,71 @@ func (p *parser) consume(tt TokenType, msg string, a ...interface{}) error {
 	return fmt.Errorf(msg, a...)
 }
 
+type Local struct {
+	*Token
+	depth int
+}
+
+type Scope struct {
+	locals [ScopeSize]Local
+	count int
+	depth int
+}
+
+func NewScope() *Scope {
+	return &Scope{
+		count: 0,
+		depth: 0,
+	}
+}
+
+func (s *Scope) IsEmpty() bool {
+	return s.count == 0
+}
+
+func (s *Scope) AddLocal(t *Token) error {
+	if s.count >= ScopeSize {
+		return fmt.Errorf("compile error, too many variables in local scope")
+	}
+
+	// check redeclaration
+	for i := 0; i < s.count; i++ {
+		local := s.locals[i]
+		if local.depth != -1 && local.depth < s.depth {
+			break
+		}
+
+		if local.Lexeme == t.Lexeme {
+			return fmt.Errorf("compile error, variable '%s' is already defined in this scope", local.Lexeme)
+		}
+	}
+
+	local := &s.locals[s.count]
+	local.Token = t
+	local.depth = s.depth
+
+	s.count++
+	return nil
+}
+
+func (s *Scope) Begin() {
+	s.depth += 1
+}
+
+func (s *Scope) End() {
+	s.depth -= 1
+}
+
 type Compiler struct {
 	*vm.PCode
 	*parser
+	*Scope
 }
 
 func NewCompiler() *Compiler {
 	return &Compiler{
 		PCode: vm.NewPCode(),
+		Scope: NewScope(),
 	}
 }
 
@@ -65,15 +126,15 @@ type precedence uint8
 
 const (
 	PrecNone precedence = iota
-	PrecAssignment
-	PrecOr
-	PrecAnd
-	PrecEquality
-	PrecComparison
-	PrecTerm
-	PrecFactor
-	PrecUnary
-	PrecCall
+	PrecAssignment	// =
+	PrecOr			// or
+	PrecAnd			// and
+	PrecEquality	// == !=
+	PrecComparison	// < > <= >=
+	PrecTerm		// + -
+	PrecFactor		// * /
+	PrecUnary		// not !
+	PrecCall		// . ()
 	PrecPrimary
 )
 
@@ -85,7 +146,7 @@ type rule struct {
 
 func getRule(tt TokenType) rule {
 	var rules = map[TokenType]rule{
-		Equal:           {prefix: nil, infix: (*Compiler).binary, precedence: PrecEquality},
+		Equal:           {prefix: nil, infix: nil, precedence: PrecNone},
 		EqualEqual:      {prefix: nil, infix: (*Compiler).binary, precedence: PrecEquality},
 		False:           {prefix: (*Compiler).literal, infix: nil, precedence: PrecNone},
 		Greater:         {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
@@ -158,7 +219,6 @@ func (c *Compiler) Compile(source string) (*vm.PCode, error) {
 	c.parser = newParser(source)
 
 	if err := c.advance(); err != nil {
-		c.hadError = true
 		return nil, err
 	}
 
@@ -169,7 +229,6 @@ func (c *Compiler) Compile(source string) (*vm.PCode, error) {
 	}
 
 	if err := c.consume(Eof, "compile error, expected EOF [line %d]", c.current.Line); err != nil {
-		c.hadError = true
 		return nil, err
 	}
 
@@ -271,6 +330,10 @@ func (c *Compiler) statement() error {
 		return c.print()
 	}
 
+	if c.match(LeftBrace) {
+		return c.block()
+	}
+
 	if c.match(Var) {
 		return c.variable()
 	}
@@ -283,6 +346,30 @@ func (c *Compiler) statement() error {
 		return err
 	}
 	c.emitByte(vm.OpPop)
+
+	return nil
+}
+
+// block statements parser
+func (c *Compiler) block() error {
+	c.Scope.Begin()
+
+	for !c.check(RightBrace) && !c.check(Eof) {
+		if err := c.declaration(false); err != nil {
+			return err
+		}
+	}
+	if err := c.consume(RightBrace, "compile error, expected '}' after block"); err != nil {
+		return err
+	}
+
+	c.Scope.End()
+
+	// clean variable out of scope
+	for !c.Scope.IsEmpty() && c.Scope.locals[c.Scope.count-1].depth > c.Scope.depth {
+		c.emitByte(vm.OpPop)
+		c.Scope.count--
+	}
 
 	return nil
 }
@@ -308,12 +395,19 @@ func (c *Compiler) unary(_ bool) error {
 	return nil
 }
 
+// variable declaration parser
 func (c *Compiler) variable() error {
 	if err := c.consume(Identifier, "compile error, expected identifier [line %d]", c.current.Line); err != nil {
 		return err
 	}
 	identifier := c.previous.Lexeme
 
+	// declare variable
+	if err := c.AddLocal(c.previous); err != nil {
+		return err
+	}
+
+	// define variable
 	if c.match(Equal) {
 		if err := c.expression(false); err != nil {
 			return err
@@ -326,12 +420,19 @@ func (c *Compiler) variable() error {
 		return err
 	}
 
+	if c.Scope.depth > 0 {
+		// local scope
+		return nil
+	}
+
+	// define variable as global
 	c.emitByte(vm.OpDefineGlobal)
 	c.WriteIdentifier(identifier, c.current.Line)
 
 	return nil
 }
 
+// identifier parser
 func (c *Compiler) identifier(assignable bool) error {
 	identifier := c.previous.Lexeme
 
