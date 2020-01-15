@@ -82,7 +82,7 @@ func (s *Scope) AddLocal(t *Token) error {
 	}
 
 	// check redeclaration
-	for i := 0; i < s.count; i++ {
+	for i := s.count; i >= 0; i-- {
 		local := s.locals[i]
 		if local.depth != -1 && local.depth < s.depth {
 			break
@@ -414,8 +414,10 @@ func (c *Compiler) variable() error {
 	identifier := c.previous.Lexeme
 
 	// declare variable
-	if err := c.AddLocal(c.previous); err != nil {
-		return err
+	if c.Scope.depth > 0 {
+		if err := c.AddLocal(c.previous); err != nil {
+			return err
+		}
 	}
 
 	// define variable
@@ -447,20 +449,47 @@ func (c *Compiler) variable() error {
 func (c *Compiler) identifier(assignable bool) error {
 	identifier := c.previous.Lexeme
 
+	var getOp, setOp vm.OpCode
+
+	isLocal, addr := c.resolveLocal(identifier)
+
+	if isLocal {
+		getOp = vm.OpGetLocal
+		setOp = vm.OpSetLocal
+	} else {
+		getOp = vm.OpGetGlobal
+		setOp = vm.OpSetGlobal
+	}
+
 	if c.match(Equal) && assignable {
 		// assignment
 		if err := c.expression(false); err != nil {
 			return err
 		}
-		c.emitByte(vm.OpSetGlobal)
+		c.emitByte(setOp)
 	} else {
 		// reading identifier
-		c.emitByte(vm.OpGetGlobal)
+		c.emitByte(getOp)
 	}
 
-	c.WriteIdentifier(identifier, c.current.Line)
+	if isLocal {
+		c.Write(vm.OpCode(addr), c.current.Line)
+	} else {
+		c.WriteIdentifier(identifier, c.current.Line)
+	}
 
 	return nil
+}
+
+func (c *Compiler) resolveLocal(identifier string) (bool, int) {
+	for i := c.Scope.count - 1; i >= 0; i-- {
+		local := c.Scope.locals[i]
+		if local.Lexeme == identifier {
+			return true, i
+		}
+	}
+
+	return false, -1
 }
 
 func (c *Compiler) emitByte(byte vm.OpCode) {

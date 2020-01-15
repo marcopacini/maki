@@ -77,6 +77,12 @@ func (vm *VM) Run(pcode *PCode) error {
 					return err
 				}
 			}
+		case OpGetLocal:
+			{
+				if err := vm.getLocal(); err != nil {
+					return err
+				}
+			}
 		case OpGreater:
 			{
 				if err := vm.greater(); err != nil {
@@ -140,6 +146,12 @@ func (vm *VM) Run(pcode *PCode) error {
 		case OpSetGlobal:
 			{
 				if err := vm.setGlobal(); err != nil {
+					return err
+				}
+			}
+		case OpSetLocal:
+			{
+				if err := vm.setLocal(); err != nil {
 					return err
 				}
 			}
@@ -254,6 +266,14 @@ func (vm *VM) getGlobal() error {
 	return nil
 }
 
+func (vm *VM) getLocal() error {
+	vm.ip++
+	v := vm.stack[vm.Code[vm.ip]]
+	vm.push(v)
+
+	return nil
+}
+
 func (vm *VM) setGlobal() error {
 	vm.ip++
 	identifier, _ := vm.Constants.At(int(vm.Code[vm.ip])).Ptr.(string)
@@ -263,6 +283,13 @@ func (vm *VM) setGlobal() error {
 	}
 
 	vm.globals[identifier] = *vm.top()
+
+	return nil
+}
+
+func (vm *VM) setLocal() error {
+	vm.ip++
+	vm.stack[vm.Code[vm.ip]] = *vm.top()
 
 	return nil
 }

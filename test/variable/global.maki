@@ -1,7 +1,17 @@
 var b = true;
 var n = 10;
-var s = "Hello, World";
+var s = "Hello, World!";
 
 print b; // expect: true
 print n; // expect: 10
-print s; // expect: Hello, World
+print s; // expect: Hello, World!
+
+{
+    b = false;
+    n = 42;
+    s = "Hello, Maki!";
+}
+
+print b; // expect: false
+print n; // expect: 42
+print s; // expect: Hello, Maki!

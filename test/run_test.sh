@@ -18,6 +18,5 @@ fi
 if [ "$OUTPUT" != "$EXPECT" ]
 then
   echo "FAILS :: output doesn't match"
-  diff <(echo $OUTPUT) <(echo $EXPECT)
   exit 1
 fi

@@ -34,6 +34,7 @@ const (
 	OpEqual
 	OpEqualEqual
 	OpGetGlobal
+	OpGetLocal
 	OpGreater
 	OpGreaterEqual
 	OpLess
@@ -47,6 +48,7 @@ const (
 	OpPrint
 	OpReturn
 	OpSetGlobal
+	OpSetLocal
 	OpSubtract
 )
 
@@ -62,16 +64,18 @@ func (op OpCode) String() string {
 		return "OP_EQUAL_EQUAL"
 	case OpGetGlobal:
 		return "OP_GET_GLOBAL"
-
+	case OpGetLocal:
+		return "OP_GET_LOCAL"
 	case OpMinus:
 		return "OP_MINUS"
 	case OpMultiply:
 		return "OP_MULTIPLY"
-
 	case OpReturn:
 		return "OP_RETURN"
 	case OpSetGlobal:
 		return "OP_SET_GLOBAL"
+	case OpSetLocal:
+		return "OP_SET_LOCAL"
 	case OpPop:
 		return "OP_POP"
 	case OpPrint:

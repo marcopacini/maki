@@ -1,0 +1,10 @@
+var x = true;
+{
+    var x = 42;
+    {
+        var x = "Hello, World!";
+        print x; // expect: Hello, World!
+    }
+    print x; // expect: 42
+}
+print x; // expect: true
