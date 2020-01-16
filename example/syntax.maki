@@ -1,3 +1,15 @@
+/*
+ *  Maki Syntax
+ */
+
+// Variables definition
+var i // i = Nil
+
+var {
+    b = true
+    s = "Hello, Maki!"
+}
+
 // Class definition
 class Cat
 {
