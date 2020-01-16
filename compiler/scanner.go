@@ -27,6 +27,7 @@ const (
 	LessEqual                  = "LESS_EQUAL"
 	Let                        = "LET"
 	Minus                      = "MINUS"
+	NewLine                    = "NEW_LINE"
 	Nil                        = "NIL"
 	Not                        = "NOT"
 	NotEqual                   = "NOT_EQUAL"
@@ -128,6 +129,11 @@ func (s *scanner) scanToken() (*Token, error) {
 
 	r := s.advance()
 	switch r {
+	case '\n':
+		{
+			s.line++
+			return s.makeToken(NewLine), nil
+		}
 	case '(':
 		{
 			return s.makeToken(LeftParenthesis), nil
@@ -352,13 +358,6 @@ func (s *scanner) trim() {
 			{
 				s.start++
 				s.current++
-				break
-			}
-		case '\n':
-			{
-				s.start++
-				s.current++
-				s.line++
 				break
 			}
 		default:

@@ -35,18 +35,22 @@ func (p *parser) check(tt TokenType) bool {
 	return p.current.TokenType == tt
 }
 
-func (p *parser) match(tt TokenType) bool {
-	if p.current.TokenType == tt {
-		_ = p.advance()
-		return true
+func (p *parser) match(tts ...TokenType) bool {
+	for _, tt := range tts {
+		if p.current.TokenType == tt {
+			_ = p.advance()
+			return true
+		}
 	}
 	return false
 }
 
-func (p *parser) consume(tt TokenType, msg string, a ...interface{}) error {
-	if p.current.TokenType == tt {
-		_ = p.advance()
-		return nil
+func (p *parser) consume(tts []TokenType, msg string, a ...interface{}) error {
+	for _, tt := range tts {
+		if p.current.TokenType == tt {
+			_ = p.advance()
+			return nil
+		}
 	}
 
 	return fmt.Errorf(msg, a...)
@@ -171,7 +175,7 @@ func (c *Compiler) Compile(source string) (*vm.PCode, error) {
 		}
 	}
 
-	if err := c.consume(Eof, "compile error, expected EOF [line %d]", c.current.Line); err != nil {
+	if err := c.consume([]TokenType{Eof}, "compile error, expected EOF [line %d]", c.current.Line); err != nil {
 		return nil, err
 	}
 
@@ -219,6 +223,10 @@ func (c *Compiler) expression(_ bool) error {
 }
 
 func (c *Compiler) declaration(_ bool) error {
+	if c.match(Semicolon, NewLine) {
+		return nil
+	}
+
 	return c.statement()
 }
 
@@ -226,7 +234,7 @@ func (c *Compiler) grouping(_ bool) error {
 	if err := c.expression(false); err != nil {
 		return err
 	}
-	return c.consume(RightParenthesis, "compiler error, expect ')' after expression [line %d]", c.current.Line)
+	return c.consume([]TokenType{RightParenthesis}, "compiler error, expect ')' after expression [line %d]", c.current.Line)
 }
 
 func (c *Compiler) literal(_ bool) error {
@@ -266,7 +274,7 @@ func (c *Compiler) print() error {
 		return err
 	}
 
-	if err := c.consume(Semicolon, "error at line %d: expected semicolon", c.current.Line); err != nil {
+	if err := c.consume([]TokenType{Semicolon, NewLine}, "error at line %d: expected semicolon or new line", c.current.Line); err != nil {
 		return err
 	}
 
@@ -291,7 +299,7 @@ func (c *Compiler) statement() error {
 		return err
 	}
 
-	if err := c.consume(Semicolon, "compile error, expected semicolon [line %d]", c.current.Line); err != nil {
+	if err := c.consume([]TokenType{Semicolon, NewLine}, "compile error, expected semicolon or new line [line %d]", c.current.Line); err != nil {
 		return err
 	}
 	c.emitByte(vm.OpPop)
@@ -307,7 +315,7 @@ func (c *Compiler) block() error {
 			return err
 		}
 	}
-	if err := c.consume(RightBrace, "compile error, expected '}' after block"); err != nil {
+	if err := c.consume([]TokenType{RightBrace}, "compile error, expected '}' after block"); err != nil {
 		return err
 	}
 
@@ -347,7 +355,7 @@ func (c *Compiler) unary(_ bool) error {
 func (c *Compiler) variable() error {
 	modifiable := c.previous.TokenType == Var
 
-	if err := c.consume(Identifier, "compile error, expected identifier [line %d]", c.current.Line); err != nil {
+	if err := c.consume([]TokenType{Identifier}, "compile error, expected identifier [line %d]", c.current.Line); err != nil {
 		return err
 	}
 	identifier := c.previous.Lexeme
@@ -368,7 +376,7 @@ func (c *Compiler) variable() error {
 		v := vm.Value{ValueType: vm.Nil}
 		c.emitConstant(v)
 	}
-	if err := c.consume(Semicolon, "compile error, expected semicolon [line %d]", c.current.Line); err != nil {
+	if err := c.consume([]TokenType{Semicolon, NewLine}, "compile error, expected semicolon or new line [line %d]", c.current.Line); err != nil {
 		return err
 	}
 
