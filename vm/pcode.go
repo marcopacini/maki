@@ -28,7 +28,7 @@ type OpCode uint8
 
 const (
 	OpAdd OpCode = iota
-	OpConstant
+	OpValue
 	OpDefineGlobal
 	OpDivide
 	OpEqual
@@ -56,8 +56,6 @@ func (op OpCode) String() string {
 	switch op {
 	case OpAdd:
 		return "OP_ADD"
-	case OpConstant:
-		return "OP_CONSTANT"
 	case OpDefineGlobal:
 		return "OP_DEFINE_GLOBAL"
 	case OpEqualEqual:
@@ -80,6 +78,8 @@ func (op OpCode) String() string {
 		return "OP_POP"
 	case OpPrint:
 		return "OP_PRINT"
+	case OpValue:
+		return "OP_VALUE"
 	default:
 		return "OP_UNKNOWN"
 	}
@@ -104,7 +104,7 @@ func (c *PCode) Write(op OpCode, line int) {
 }
 
 func (c *PCode) WriteConstant(v Value, line int) {
-	c.Write(OpConstant, line)
+	c.Write(OpValue, line)
 	address := c.Constants.Write(v)
 	c.Write(OpCode(address), line)
 }
@@ -135,11 +135,15 @@ func (c PCode) String() string {
 
 		// Skip next code
 		switch c.Code[i] {
-		case OpConstant, OpDefineGlobal, OpGetGlobal, OpSetGlobal:
+		case OpValue, OpDefineGlobal, OpGetGlobal, OpSetGlobal:
 			{
 				i++
 				addr := int(c.Code[i])
 				s.WriteString(fmt.Sprintf(" '%v'", c.Constants.At(addr)))
+			}
+		case OpGetLocal, OpSetLocal:
+			{
+				i++ // ignore depth level
 			}
 		}
 

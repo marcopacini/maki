@@ -53,7 +53,7 @@ func (vm *VM) Run(pcode *PCode) error {
 					return err
 				}
 			}
-		case OpConstant:
+		case OpValue:
 			{
 				vm.constant()
 			}
@@ -424,7 +424,7 @@ func (vm *VM) getOperands() (Value, Value) {
 func (vm *VM) getCurrentLine() int {
 	line, err := vm.Lines.At(vm.ip)
 	if err != nil {
-		panic(err)
+		panic(err.Error())
 	}
 
 	return line

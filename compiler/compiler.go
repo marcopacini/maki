@@ -56,7 +56,8 @@ func (p *parser) consume(tt TokenType, msg string, a ...interface{}) error {
 
 type Local struct {
 	*Token
-	depth int
+	modifiable bool
+	depth      int
 }
 
 type Scope struct {
@@ -76,7 +77,7 @@ func (s *Scope) IsEmpty() bool {
 	return s.count == 0
 }
 
-func (s *Scope) AddLocal(t *Token) error {
+func (s *Scope) AddLocal(t *Token, modifiable bool) error {
 	if s.count >= ScopeSize {
 		return fmt.Errorf("compile error, too many variables in local scope")
 	}
@@ -95,6 +96,7 @@ func (s *Scope) AddLocal(t *Token) error {
 
 	local := &s.locals[s.count]
 	local.Token = t
+	local.modifiable = modifiable
 	local.depth = s.depth
 
 	s.count++
@@ -343,7 +345,7 @@ func (c *Compiler) statement() error {
 		return c.block()
 	}
 
-	if c.match(Var) {
+	if c.match(Var) || c.match(Let) {
 		return c.variable()
 	}
 
@@ -408,6 +410,8 @@ func (c *Compiler) unary(_ bool) error {
 
 // variable declaration parser
 func (c *Compiler) variable() error {
+	modifiable := c.current.TokenType == Var
+
 	if err := c.consume(Identifier, "compile error, expected identifier [line %d]", c.current.Line); err != nil {
 		return err
 	}
@@ -415,7 +419,7 @@ func (c *Compiler) variable() error {
 
 	// declare variable
 	if c.Scope.depth > 0 {
-		if err := c.AddLocal(c.previous); err != nil {
+		if err := c.AddLocal(c.previous, modifiable); err != nil {
 			return err
 		}
 	}
@@ -451,7 +455,7 @@ func (c *Compiler) identifier(assignable bool) error {
 
 	var getOp, setOp vm.OpCode
 
-	isLocal, addr := c.resolveLocal(identifier)
+	isLocal, addr, modifiable := c.resolveLocal(identifier)
 
 	if isLocal {
 		getOp = vm.OpGetLocal
@@ -462,6 +466,10 @@ func (c *Compiler) identifier(assignable bool) error {
 	}
 
 	if c.match(Equal) && assignable {
+		if !modifiable {
+			return fmt.Errorf("compile error, cannot assign expression to constant '%s' [line %d]", identifier, c.current.Line)
+		}
+
 		// assignment
 		if err := c.expression(false); err != nil {
 			return err
@@ -481,15 +489,15 @@ func (c *Compiler) identifier(assignable bool) error {
 	return nil
 }
 
-func (c *Compiler) resolveLocal(identifier string) (bool, int) {
+func (c *Compiler) resolveLocal(identifier string) (bool, int, bool) {
 	for i := c.Scope.count - 1; i >= 0; i-- {
 		local := c.Scope.locals[i]
 		if local.Lexeme == identifier {
-			return true, i
+			return true, i, local.modifiable
 		}
 	}
 
-	return false, -1
+	return false, -1, false
 }
 
 func (c *Compiler) emitByte(byte vm.OpCode) {
