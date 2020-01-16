@@ -40,6 +40,11 @@ func (vm *VM) pop() Value {
 	return vm.stack[vm.sp]
 }
 
+func (vm *VM) readByte() OpCode {
+	vm.ip++
+	return vm.Code[vm.ip]
+}
+
 func (vm *VM) Run(pcode *PCode) error {
 	vm.ip = 0
 	vm.sp = 0
@@ -79,9 +84,7 @@ func (vm *VM) Run(pcode *PCode) error {
 			}
 		case OpGetLocal:
 			{
-				if err := vm.getLocal(); err != nil {
-					return err
-				}
+				vm.getLocal()
 			}
 		case OpGreater:
 			{
@@ -151,9 +154,7 @@ func (vm *VM) Run(pcode *PCode) error {
 			}
 		case OpSetLocal:
 			{
-				if err := vm.setLocal(); err != nil {
-					return err
-				}
+				vm.setLocal()
 			}
 		case OpSubtract:
 			{
@@ -198,21 +199,18 @@ func (vm *VM) add() error {
 }
 
 func (vm *VM) constant() {
-	vm.ip++
-	addr := int(vm.Code[vm.ip])
+	addr := int(vm.readByte())
 	vm.push(vm.Constants.At(addr))
 }
 
 func (vm *VM) defineGlobal() {
-	vm.ip++
-	identifier, _ := vm.Constants.At(int(vm.Code[vm.ip])).Ptr.(string)
+	addr := int(vm.readByte())
+	identifier, _ := vm.Constants.At(addr).Ptr.(string)
 	vm.globals[identifier] = vm.pop()
 }
 
 func (vm *VM) divide() {
-	rhs := vm.pop()
-	lhs := vm.pop()
-
+	rhs, lhs := vm.getOperands()
 	v := Value{ValueType: Number, N: lhs.N / rhs.N}
 	vm.push(v)
 }
@@ -254,8 +252,8 @@ func (vm *VM) equalEqual() error {
 }
 
 func (vm *VM) getGlobal() error {
-	vm.ip++
-	identifier, _ := vm.Constants.At(int(vm.Code[vm.ip])).Ptr.(string)
+	addr := int(vm.readByte())
+	identifier, _ := vm.Constants.At(addr).Ptr.(string)
 
 	v, ok := vm.globals[identifier]
 	if !ok {
@@ -266,32 +264,27 @@ func (vm *VM) getGlobal() error {
 	return nil
 }
 
-func (vm *VM) getLocal() error {
-	vm.ip++
-	v := vm.stack[vm.Code[vm.ip]]
+func (vm *VM) getLocal() {
+	addr := int(vm.readByte())
+	v := vm.stack[addr]
 	vm.push(v)
-
-	return nil
 }
 
 func (vm *VM) setGlobal() error {
-	vm.ip++
-	identifier, _ := vm.Constants.At(int(vm.Code[vm.ip])).Ptr.(string)
+	addr := int(vm.readByte())
+	identifier, _ := vm.Constants.At(addr).Ptr.(string)
 
 	if _, ok := vm.globals[identifier]; !ok {
 		return fmt.Errorf("maki :: runtime error, variable '%s' not defined [line %d]", identifier, vm.getCurrentLine())
 	}
 
 	vm.globals[identifier] = *vm.top()
-
 	return nil
 }
 
-func (vm *VM) setLocal() error {
-	vm.ip++
-	vm.stack[vm.Code[vm.ip]] = *vm.top()
-
-	return nil
+func (vm *VM) setLocal() {
+	addr := int(vm.readByte())
+	vm.stack[addr] = *vm.top()
 }
 
 func (vm *VM) notEqual() error {
@@ -379,7 +372,6 @@ func (vm *VM) minus() error {
 
 func (vm *VM) multiply() {
 	rhs, lhs := vm.getOperands()
-
 	v := Value{ValueType: Number, N: lhs.N * rhs.N}
 	vm.push(v)
 }
@@ -408,12 +400,10 @@ func (vm *VM) not() {
 
 func (vm *VM) subtract() {
 	rhs, lhs := vm.getOperands()
-
 	v := Value{
 		ValueType: Number,
 		N:         lhs.N - rhs.N,
 	}
-
 	vm.push(v)
 }
 
@@ -426,6 +416,5 @@ func (vm *VM) getCurrentLine() int {
 	if err != nil {
 		panic(err.Error())
 	}
-
 	return line
 }
