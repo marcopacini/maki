@@ -6,8 +6,6 @@ import (
 	"strconv"
 )
 
-const ScopeSize = 256
-
 type parser struct {
 	*scanner
 	current  *Token
@@ -54,73 +52,16 @@ func (p *parser) consume(tt TokenType, msg string, a ...interface{}) error {
 	return fmt.Errorf(msg, a...)
 }
 
-type Local struct {
-	*Token
-	modifiable bool
-	depth      int
-}
-
-type Scope struct {
-	locals [ScopeSize]Local
-	count  int
-	depth  int
-}
-
-func NewScope() *Scope {
-	return &Scope{
-		count: 0,
-		depth: 0,
-	}
-}
-
-func (s *Scope) IsEmpty() bool {
-	return s.count == 0
-}
-
-func (s *Scope) AddLocal(t *Token, modifiable bool) error {
-	if s.count >= ScopeSize {
-		return fmt.Errorf("compile error, too many variables in local scope")
-	}
-
-	// check redeclaration
-	for i := s.count; i >= 0; i-- {
-		local := s.locals[i]
-		if local.depth != -1 && local.depth < s.depth {
-			break
-		}
-
-		if local.Lexeme == t.Lexeme {
-			return fmt.Errorf("compile error, variable '%s' is already defined in this scope", local.Lexeme)
-		}
-	}
-
-	local := &s.locals[s.count]
-	local.Token = t
-	local.modifiable = modifiable
-	local.depth = s.depth
-
-	s.count++
-	return nil
-}
-
-func (s *Scope) Begin() {
-	s.depth += 1
-}
-
-func (s *Scope) End() {
-	s.depth -= 1
-}
-
 type Compiler struct {
 	*vm.PCode
 	*parser
-	*Scope
+	*scope
 }
 
 func NewCompiler() *Compiler {
 	return &Compiler{
 		PCode: vm.NewPCode(),
-		Scope: NewScope(),
+		scope: newScope(),
 	}
 }
 
@@ -363,7 +304,7 @@ func (c *Compiler) statement() error {
 
 // block statements parser
 func (c *Compiler) block() error {
-	c.Scope.Begin()
+	c.scope.begin()
 
 	for !c.check(RightBrace) && !c.check(Eof) {
 		if err := c.declaration(false); err != nil {
@@ -374,12 +315,12 @@ func (c *Compiler) block() error {
 		return err
 	}
 
-	c.Scope.End()
+	c.scope.end()
 
 	// clean variable out of scope
-	for !c.Scope.IsEmpty() && c.Scope.locals[c.Scope.count-1].depth > c.Scope.depth {
+	for !c.scope.isEmpty() && c.scope.locals[c.scope.count-1].depth > c.scope.depth {
 		c.emitByte(vm.OpPop)
-		c.Scope.count--
+		c.scope.count--
 	}
 
 	return nil
@@ -418,8 +359,8 @@ func (c *Compiler) variable() error {
 	identifier := c.previous.Lexeme
 
 	// declare variable
-	if c.Scope.depth > 0 {
-		if err := c.AddLocal(c.previous, modifiable); err != nil {
+	if c.scope.depth > 0 {
+		if err := c.addLocal(identifier, modifiable); err != nil {
 			return err
 		}
 	}
@@ -437,7 +378,7 @@ func (c *Compiler) variable() error {
 		return err
 	}
 
-	if c.Scope.depth > 0 {
+	if c.scope.depth > 0 {
 		// local scope
 		return nil
 	}
@@ -490,9 +431,9 @@ func (c *Compiler) identifier(assignable bool) error {
 }
 
 func (c *Compiler) resolveLocal(identifier string) (bool, int, bool) {
-	for i := c.Scope.count - 1; i >= 0; i-- {
-		local := c.Scope.locals[i]
-		if local.Lexeme == identifier {
+	for i := c.scope.count - 1; i >= 0; i-- {
+		local := c.scope.locals[i]
+		if local.identifier == identifier {
 			return true, i, local.modifiable
 		}
 	}
