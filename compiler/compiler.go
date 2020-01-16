@@ -60,7 +60,6 @@ type Compiler struct {
 
 func NewCompiler() *Compiler {
 	return &Compiler{
-		PCode: vm.NewPCode(),
 		scope: newScope(),
 	}
 }
@@ -159,6 +158,7 @@ func (c *Compiler) parsePrecedence(prec precedence) error {
 }
 
 func (c *Compiler) Compile(source string) (*vm.PCode, error) {
+	c.PCode = vm.NewPCode()
 	c.parser = newParser(source)
 
 	if err := c.advance(); err != nil {
@@ -215,7 +215,6 @@ func (c *Compiler) expression(_ bool) error {
 	if err := c.parsePrecedence(PrecAssignment); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -248,7 +247,6 @@ func (c *Compiler) literal(_ bool) error {
 			c.emitConstant(v)
 		}
 	}
-
 	return nil
 }
 
@@ -260,7 +258,6 @@ func (c *Compiler) number(_ bool) error {
 
 	v := vm.Value{ValueType: vm.Number, N: n}
 	c.emitConstant(v)
-
 	return nil
 }
 
@@ -298,7 +295,6 @@ func (c *Compiler) statement() error {
 		return err
 	}
 	c.emitByte(vm.OpPop)
-
 	return nil
 }
 
@@ -322,7 +318,6 @@ func (c *Compiler) block() error {
 		c.emitByte(vm.OpPop)
 		c.scope.count--
 	}
-
 	return nil
 }
 
@@ -345,13 +340,12 @@ func (c *Compiler) unary(_ bool) error {
 	case Minus:
 		c.emitByte(vm.OpMinus)
 	}
-
 	return nil
 }
 
 // variable declaration parser
 func (c *Compiler) variable() error {
-	modifiable := c.current.TokenType == Var
+	modifiable := c.previous.TokenType == Var
 
 	if err := c.consume(Identifier, "compile error, expected identifier [line %d]", c.current.Line); err != nil {
 		return err
@@ -386,7 +380,7 @@ func (c *Compiler) variable() error {
 	// define variable as global
 	c.emitByte(vm.OpDefineGlobal)
 	c.WriteIdentifier(identifier, c.current.Line)
-
+	c.scope.addGlobal(identifier, modifiable)
 	return nil
 }
 
@@ -396,7 +390,7 @@ func (c *Compiler) identifier(assignable bool) error {
 
 	var getOp, setOp vm.OpCode
 
-	isLocal, addr, modifiable := c.resolveLocal(identifier)
+	isLocal, addr, modifiable := c.resolveVar(identifier)
 
 	if isLocal {
 		getOp = vm.OpGetLocal
@@ -428,17 +422,6 @@ func (c *Compiler) identifier(assignable bool) error {
 	}
 
 	return nil
-}
-
-func (c *Compiler) resolveLocal(identifier string) (bool, int, bool) {
-	for i := c.scope.count - 1; i >= 0; i-- {
-		local := c.scope.locals[i]
-		if local.identifier == identifier {
-			return true, i, local.modifiable
-		}
-	}
-
-	return false, -1, false
 }
 
 func (c *Compiler) emitByte(byte vm.OpCode) {

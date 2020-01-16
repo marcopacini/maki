@@ -19,13 +19,18 @@ type scope struct {
 
 func newScope() *scope {
 	return &scope{
-		count: 0,
-		depth: 0,
+		globals: make(map[string]bool),
+		count:   0,
+		depth:   0,
 	}
 }
 
 func (s *scope) isEmpty() bool {
 	return s.count == 0
+}
+
+func (s *scope) addGlobal(identifier string, modifiable bool) {
+	s.globals[identifier] = modifiable
 }
 
 func (s *scope) addLocal(identifier string, modifiable bool) error {
@@ -53,6 +58,17 @@ func (s *scope) addLocal(identifier string, modifiable bool) error {
 
 	s.count++
 	return nil
+}
+
+func (s scope) resolveVar(identifier string) (bool, int, bool) {
+	for i := s.count - 1; i >= 0; i-- {
+		local := s.locals[i]
+		if local.identifier == identifier {
+			return true, i, local.modifiable
+		}
+	}
+
+	return false, -1, s.globals[identifier]
 }
 
 func (s *scope) begin() {
