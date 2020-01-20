@@ -1,0 +1,7 @@
+if true {
+    print "Hello, Maki!" // expect: Hello, Maki!
+}
+
+if false {
+    print "not printed"
+}

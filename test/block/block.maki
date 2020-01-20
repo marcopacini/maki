@@ -1,0 +1,7 @@
+{ var x; print x } // expect: Nil
+
+var x = 10;
+print x; // expect: 10
+{
+    var x = "Hello, Maki!"; print x; // expect: Hello, Maki!
+}
