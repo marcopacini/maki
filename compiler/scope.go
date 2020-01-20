@@ -39,8 +39,8 @@ func (s *scope) addLocal(identifier string, modifiable bool) error {
 	}
 
 	// check redeclaration
-	for i := s.count; i >= 0; i-- {
-		local := s.locals[i]
+	for i := s.count; i > 0; i-- {
+		local := s.locals[i-1]
 		if local.depth != -1 && local.depth < s.depth {
 			break
 		}
