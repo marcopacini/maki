@@ -20,6 +20,14 @@ type Value struct {
 	Ptr interface{}
 }
 
+func (v Value) Bool() bool {
+	if v.ValueType == Bool && v.B {
+		return true
+	}
+
+	return false
+}
+
 func (v Value) String() string {
 	switch v.ValueType {
 	case Bool:

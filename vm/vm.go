@@ -98,6 +98,12 @@ func (vm *VM) Run(pcode *PCode) error {
 					return err
 				}
 			}
+		case OpJump:
+			{
+				if err := vm.ifStatement(); err != nil {
+					return err
+				}
+			}
 		case OpLess:
 			{
 				if err := vm.less(); err != nil {
@@ -268,6 +274,17 @@ func (vm *VM) getLocal() {
 	addr := int(vm.readByte())
 	v := vm.stack[addr]
 	vm.push(v)
+}
+
+func (vm *VM) ifStatement() error {
+	if vm.pop().Bool() {
+		_ = vm.readByte() // skip jump
+	} else {
+		jump := int(vm.readByte())
+		vm.ip = jump - 1
+	}
+
+	return nil
 }
 
 func (vm *VM) setGlobal() error {

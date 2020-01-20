@@ -37,6 +37,7 @@ const (
 	OpGetLocal
 	OpGreater
 	OpGreaterEqual
+	OpJump
 	OpLess
 	OpLessEqual
 	OpMinus
@@ -64,6 +65,8 @@ func (op OpCode) String() string {
 		return "OP_GET_GLOBAL"
 	case OpGetLocal:
 		return "OP_GET_LOCAL"
+	case OpJump:
+		return "OP_JUMP"
 	case OpMinus:
 		return "OP_MINUS"
 	case OpMultiply:
@@ -144,6 +147,12 @@ func (c PCode) String() string {
 		case OpGetLocal, OpSetLocal:
 			{
 				i++ // ignore depth level
+			}
+		case OpJump:
+			{
+				i++
+				addr := int(c.Code[i])
+				s.WriteString(fmt.Sprintf("  '%04d'", addr))
 			}
 		}
 

@@ -224,8 +224,10 @@ func (c *Compiler) print() error {
 		return err
 	}
 
-	if err := c.consume(Semicolon, NewLine); err != nil {
-		return err
+	if !c.check(RightBrace) {
+		if err := c.consume(Semicolon, NewLine); err != nil {
+			return err
+		}
 	}
 
 	c.emitByte(vm.OpPrint)
@@ -241,8 +243,12 @@ func (c *Compiler) statement() error {
 		return c.block()
 	}
 
-	if c.match(Var) || c.match(Let) {
+	if c.match(Var, Let) {
 		return c.variable()
+	}
+
+	if c.match(If) {
+		return c.ifStatement()
 	}
 
 	if err := c.expression(false); err != nil {
@@ -382,6 +388,18 @@ func (c *Compiler) identifier(assignable bool) error {
 	return nil
 }
 
+func (c *Compiler) ifStatement() error {
+	if err := c.expression(false); err != nil {
+		return err
+	}
+	patch := c.emitJump()
+	if err := c.statement(); err != nil {
+		return err
+	}
+	c.applyPatch(patch)
+	return nil
+}
+
 func (c *Compiler) emitByte(byte vm.OpCode) {
 	c.Write(byte, c.current.Line)
 }
@@ -390,6 +408,15 @@ func (c *Compiler) emitBytes(bytes ...vm.OpCode) {
 	for _, b := range bytes {
 		c.emitByte(b)
 	}
+}
+
+func (c *Compiler) emitJump() int {
+	c.emitBytes(vm.OpJump, vm.OpCode(0))
+	return len(c.Code) - 1
+}
+
+func (c *Compiler) applyPatch(patch int) {
+	c.Code[patch] = vm.OpCode(len(c.Code))
 }
 
 func (c *Compiler) emitConstant(v vm.Value) {

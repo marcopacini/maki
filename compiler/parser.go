@@ -44,6 +44,14 @@ func (p *parser) match(tts ...TokenType) bool {
 	return false
 }
 
+func (p *parser) trim(tts ...TokenType) {
+	for !p.isEnd() {
+		if !p.match(tts...) {
+			return
+		}
+	}
+}
+
 func (p *parser) consume(tts ...TokenType) error {
 	for _, tt := range tts {
 		if p.current.TokenType == tt {
@@ -52,7 +60,7 @@ func (p *parser) consume(tts ...TokenType) error {
 		}
 	}
 
-	beautify := func(tts []TokenType) string {
+	beautify := func(tts ...TokenType) string {
 		var l []string
 		for _, tt := range tts {
 			l = append(l, string(tt))
@@ -61,5 +69,5 @@ func (p *parser) consume(tts ...TokenType) error {
 		return strings.Join(l, " or ")
 	}
 
-	return fmt.Errorf("compile error, expected '%s' [line %d]", beautify(tts), p.current.Line)
+	return fmt.Errorf("compile error, expected '%s' [line %d]", beautify(tts...), p.current.Line)
 }
