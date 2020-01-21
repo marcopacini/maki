@@ -5,3 +5,17 @@ if true {
 if false {
     print "not printed"
 }
+
+let name = "Maki"
+
+if name == "Maki" {
+    print "Hello, " + name + "!" // expect: Hello, Maki!
+} else {
+    print "Hello, unknown!"
+}
+
+if name == "maki" {
+    print "Hello, " + name + "!"
+} else {
+    print "Hello, unknown!" // expect: Hello, unknown!
+}
