@@ -42,6 +42,7 @@ type rule struct {
 
 func getRule(tt TokenType) rule {
 	var rules = map[TokenType]rule{
+		And:             {prefix: nil, infix: (*Compiler).and, precedence: PrecAnd},
 		Equal:           {prefix: nil, infix: nil, precedence: PrecNone},
 		EqualEqual:      {prefix: nil, infix: (*Compiler).binary, precedence: PrecEquality},
 		False:           {prefix: (*Compiler).literal, infix: nil, precedence: PrecNone},
@@ -133,6 +134,18 @@ func (c *Compiler) Compile(source string) (*vm.PCode, error) {
 	c.emitByte(vm.OpReturn)
 
 	return c.PCode, nil
+}
+
+func (c *Compiler) and(_ bool) error {
+	jump := c.emitJump(vm.OpJumpIfFalse)
+
+	c.emitByte(vm.OpPop)
+	if err := c.parsePrecedence(PrecAnd); err != nil {
+		return err
+	}
+
+	c.applyPatch(jump)
+	return nil
 }
 
 func (c *Compiler) binary(_ bool) error {
@@ -389,19 +402,35 @@ func (c *Compiler) identifier(assignable bool) error {
 }
 
 func (c *Compiler) ifStatement() error {
+	// condition
 	if err := c.expression(false); err != nil {
 		return err
 	}
-	patch := c.emitJump()
+
+	thenJump := c.emitJump(vm.OpJumpIfFalse)
+	c.emitByte(vm.OpPop)
+
+	// then
 	if err := c.statement(); err != nil {
 		return err
 	}
-	c.applyPatch(patch)
+
+	elseJump := c.emitJump(vm.OpJump)
+	c.emitByte(vm.OpPop)
+	c.applyPatch(thenJump)
+
+	if c.match(Else) {
+		if err := c.statement(); err != nil {
+			return err
+		}
+	}
+	c.applyPatch(elseJump)
+
 	return nil
 }
 
 func (c *Compiler) emitByte(byte vm.OpCode) {
-	c.Write(byte, c.current.Line)
+	c.Write(byte, c.previous.Line)
 }
 
 func (c *Compiler) emitBytes(bytes ...vm.OpCode) {
@@ -410,13 +439,14 @@ func (c *Compiler) emitBytes(bytes ...vm.OpCode) {
 	}
 }
 
-func (c *Compiler) emitJump() int {
-	c.emitBytes(vm.OpJump, vm.OpCode(0))
+func (c *Compiler) emitJump(op vm.OpCode) int {
+	c.emitBytes(op, vm.OpCode(0))
 	return len(c.Code) - 1
 }
 
 func (c *Compiler) applyPatch(patch int) {
-	c.Code[patch] = vm.OpCode(len(c.Code))
+	offset := len(c.Code) - patch
+	c.Code[patch] = vm.OpCode(offset)
 }
 
 func (c *Compiler) emitConstant(v vm.Value) {

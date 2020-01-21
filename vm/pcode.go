@@ -38,6 +38,7 @@ const (
 	OpGreater
 	OpGreaterEqual
 	OpJump
+	OpJumpIfFalse
 	OpLess
 	OpLessEqual
 	OpMinus
@@ -67,6 +68,8 @@ func (op OpCode) String() string {
 		return "OP_GET_LOCAL"
 	case OpJump:
 		return "OP_JUMP"
+	case OpJumpIfFalse:
+		return "OP_JUMP_IF_FALSE"
 	case OpMinus:
 		return "OP_MINUS"
 	case OpMultiply:
@@ -148,11 +151,11 @@ func (c PCode) String() string {
 			{
 				i++ // ignore depth level
 			}
-		case OpJump:
+		case OpJump, OpJumpIfFalse:
 			{
 				i++
-				addr := int(c.Code[i])
-				s.WriteString(fmt.Sprintf("  '%04d'", addr))
+				offset := int(c.Code[i])
+				s.WriteString(fmt.Sprintf(" %d -> %d", offset, i+offset-1))
 			}
 		}
 
