@@ -31,7 +31,6 @@ const (
 	OpValue
 	OpDefineGlobal
 	OpDivide
-	OpEqual
 	OpEqualEqual
 	OpGetGlobal
 	OpGetLocal
@@ -41,6 +40,7 @@ const (
 	OpJumpIfFalse
 	OpLess
 	OpLessEqual
+	OpLoop
 	OpMinus
 	OpMultiply
 	OpNil
@@ -66,10 +66,20 @@ func (op OpCode) String() string {
 		return "OP_GET_GLOBAL"
 	case OpGetLocal:
 		return "OP_GET_LOCAL"
+	case OpGreater:
+		return "OP_GREATER"
+	case OpGreaterEqual:
+		return "OP_GREATER_EQUAL"
 	case OpJump:
 		return "OP_JUMP"
 	case OpJumpIfFalse:
 		return "OP_JUMP_IF_FALSE"
+	case OpLess:
+		return "OP_LESS"
+	case OpLessEqual:
+		return "OP_LESS_EQUAL"
+	case OpLoop:
+		return "OP_LOOP"
 	case OpMinus:
 		return "OP_MINUS"
 	case OpMultiply:
@@ -156,6 +166,12 @@ func (c PCode) String() string {
 				i++
 				offset := int(c.Code[i])
 				s.WriteString(fmt.Sprintf(" %d -> %d", offset, i+offset-1))
+			}
+		case OpLoop:
+			{
+				i++
+				offset := int(c.Code[i])
+				s.WriteString(fmt.Sprintf(" %d -> %d", offset, i-offset-1))
 			}
 		}
 

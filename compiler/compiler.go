@@ -186,7 +186,7 @@ func (c *Compiler) expression(_ bool) error {
 }
 
 func (c *Compiler) declaration(_ bool) error {
-	if c.match(Semicolon, NewLine) {
+	if c.match(Semicolon, NewLine, Eof) {
 		return nil
 	}
 
@@ -238,7 +238,7 @@ func (c *Compiler) print() error {
 	}
 
 	if !c.check(RightBrace) {
-		if err := c.consume(Semicolon, NewLine); err != nil {
+		if err := c.consume(Semicolon, NewLine, Eof); err != nil {
 			return err
 		}
 	}
@@ -264,11 +264,15 @@ func (c *Compiler) statement() error {
 		return c.ifStatement()
 	}
 
+	if c.match(While) {
+		return c.whileStatement()
+	}
+
 	if err := c.expression(false); err != nil {
 		return err
 	}
 
-	if err := c.consume(Semicolon, NewLine); err != nil {
+	if err := c.consume(Semicolon, NewLine, Eof); err != nil {
 		return err
 	}
 	c.emitByte(vm.OpPop)
@@ -429,6 +433,31 @@ func (c *Compiler) ifStatement() error {
 	return nil
 }
 
+func (c *Compiler) whileStatement() error {
+	loopStart := c.getCurrentAddress()
+
+	// condition
+	if err := c.expression(false); err != nil {
+		return err
+	}
+
+	exitJump := c.emitJump(vm.OpJumpIfFalse)
+
+	c.emitByte(vm.OpPop)
+	if err := c.statement(); err != nil {
+		return err
+	}
+	c.emitLoop(loopStart)
+
+	c.applyPatch(exitJump)
+
+	return nil
+}
+
+func (c Compiler) getCurrentAddress() int {
+	return len(c.Code)
+}
+
 func (c *Compiler) emitByte(byte vm.OpCode) {
 	c.Write(byte, c.previous.Line)
 }
@@ -441,12 +470,18 @@ func (c *Compiler) emitBytes(bytes ...vm.OpCode) {
 
 func (c *Compiler) emitJump(op vm.OpCode) int {
 	c.emitBytes(op, vm.OpCode(0))
-	return len(c.Code) - 1
+	return c.getCurrentAddress() - 1
 }
 
 func (c *Compiler) applyPatch(patch int) {
 	offset := len(c.Code) - patch
 	c.Code[patch] = vm.OpCode(offset)
+}
+
+func (c *Compiler) emitLoop(startLoop int) {
+	c.emitByte(vm.OpLoop)
+	offset := c.getCurrentAddress() - startLoop - 1
+	c.emitByte(vm.OpCode(offset))
 }
 
 func (c *Compiler) emitConstant(v vm.Value) {

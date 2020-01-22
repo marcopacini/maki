@@ -1,2 +1,2 @@
-print true and false; // expect: false
-print true and true;  // expect: true
+print true and false // expect: false
+print true and true  // expect: true

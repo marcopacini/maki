@@ -1,2 +1,2 @@
-print "Hello, World!"; // expect: Hello, World!
-print "Hello," + " " + "Maki!"; // expect: Hello, Maki!
+print "Hello, World!" // expect: Hello, World!
+print "Hello," + " " + "Maki!" // expect: Hello, Maki!

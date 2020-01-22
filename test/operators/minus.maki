@@ -1,5 +1,2 @@
-print -12;
-// expect: -12
-
-print --123;
-// expect: 123
+print -12 // expect: -12
+print --123 // expect: 123

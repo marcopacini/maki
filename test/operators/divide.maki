@@ -1,5 +1,2 @@
-print 128 / 32;
-// expect: 4
-
-print 12 / 1;
-// expect: 12
+print 128 / 32 // expect: 4
+print 12 / 1 // expect: 12

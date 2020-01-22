@@ -112,6 +112,10 @@ func (vm *VM) Run(pcode *PCode) error {
 					return err
 				}
 			}
+		case OpLoop:
+			{
+				vm.loop()
+			}
 		case OpLessEqual:
 			{
 				if err := vm.lessEqual(); err != nil {
@@ -280,7 +284,7 @@ func (vm *VM) getLocal() {
 
 func (vm *VM) jump() {
 	jump := int(vm.readByte())
-	vm.ip += jump - 1
+	vm.ip += jump - 1 // n.b. -1 is required because after jump the ip will be incremented
 }
 
 func (vm *VM) jumpIfFalse() {
@@ -289,6 +293,11 @@ func (vm *VM) jumpIfFalse() {
 	} else {
 		_ = vm.readByte() // skip jump address instruction
 	}
+}
+
+func (vm *VM) loop() {
+	jump := int(vm.readByte())
+	vm.ip -= jump + 2
 }
 
 func (vm *VM) setGlobal() error {
