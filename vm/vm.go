@@ -360,7 +360,7 @@ func (vm *VM) notEqual() error {
 				return err
 			}
 
-			v.B = ls == rs
+			v.B = ls != rs
 		}
 	}
 
