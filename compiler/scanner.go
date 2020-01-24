@@ -122,7 +122,7 @@ func (s *scanner) scanToken() (*Token, error) {
 		eof := &Token{
 			TokenType: Eof,
 			Lexeme:    "",
-			Line:      s.line - 1,
+			Line:      s.line,
 		}
 		return eof, nil
 	}
@@ -131,8 +131,9 @@ func (s *scanner) scanToken() (*Token, error) {
 	switch r {
 	case '\n':
 		{
+			t := s.makeToken(NewLine)
 			s.line++
-			return s.makeToken(NewLine), nil
+			return t, nil
 		}
 	case '(':
 		{
