@@ -157,6 +157,8 @@ func (c *Compiler) binary(_ bool) error {
 	switch tt {
 	case EqualEqual:
 		c.emitByte(vm.OpEqualEqual)
+	case NotEqual:
+		c.emitByte(vm.OpNotEqual)
 	case Greater:
 		c.emitByte(vm.OpGreater)
 	case GreaterEqual:
@@ -173,6 +175,8 @@ func (c *Compiler) binary(_ bool) error {
 		c.emitByte(vm.OpMultiply)
 	case Slash:
 		c.emitByte(vm.OpDivide)
+	default:
+		return fmt.Errorf("compile error, invalid binary operator '%s' [line %d]", tt, c.previous.Line)
 	}
 
 	return nil
@@ -412,7 +416,7 @@ func (c *Compiler) ifStatement() error {
 	}
 
 	thenJump := c.emitJump(vm.OpJumpIfFalse)
-	c.emitByte(vm.OpPop)
+	c.emitByte(vm.OpPop) // pop condition in then branch
 
 	// then
 	if err := c.statement(); err != nil {
@@ -420,8 +424,8 @@ func (c *Compiler) ifStatement() error {
 	}
 
 	elseJump := c.emitJump(vm.OpJump)
-	c.emitByte(vm.OpPop)
 	c.applyPatch(thenJump)
+	c.emitByte(vm.OpPop) // pop condition in else branch
 
 	if c.match(Else) {
 		if err := c.statement(); err != nil {
@@ -474,7 +478,7 @@ func (c *Compiler) emitJump(op vm.OpCode) int {
 }
 
 func (c *Compiler) applyPatch(patch int) {
-	offset := len(c.Code) - patch
+	offset := len(c.Code) - patch + 1
 	c.Code[patch] = vm.OpCode(offset)
 }
 

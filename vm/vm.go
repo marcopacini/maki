@@ -232,11 +232,17 @@ func (vm *VM) equalEqual() error {
 
 	err := fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 
-	if lhs.ValueType != rhs.ValueType {
-		return err
-	}
-
 	v := Value{ValueType: Bool, B: true}
+
+	if lhs.ValueType != rhs.ValueType {
+		if lhs.ValueType == Nil || rhs.ValueType == Nil {
+			v.B = false
+			vm.push(v)
+			return nil
+		} else {
+			return err
+		}
+	}
 
 	switch lhs.ValueType {
 	case Bool:
@@ -284,7 +290,10 @@ func (vm *VM) getLocal() {
 
 func (vm *VM) jump() {
 	jump := int(vm.readByte())
-	vm.ip += jump - 1 // n.b. -1 is required because after jump the ip will be incremented
+	// n.b.
+	// -1 because readByte() advance the ip counter
+	// -1 because after jump the ip counter will be incremented
+	vm.ip += jump - 2
 }
 
 func (vm *VM) jumpIfFalse() {
@@ -320,17 +329,39 @@ func (vm *VM) setLocal() {
 func (vm *VM) notEqual() error {
 	rhs, lhs := vm.getOperands()
 
-	if lhs.ValueType != rhs.ValueType {
-		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
-	}
+	err := fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 
 	v := Value{ValueType: Bool, B: false}
+
+	if lhs.ValueType != rhs.ValueType {
+		if lhs.ValueType == Nil || rhs.ValueType == Nil {
+			v.B = true
+			vm.push(v)
+			return nil
+		} else {
+			return err
+		}
+	}
 
 	switch lhs.ValueType {
 	case Bool:
 		v.B = lhs.B != rhs.B
 	case Number:
-		v.B = lhs.N != lhs.N
+		v.B = lhs.N != rhs.N
+	case Object:
+		{
+			ls, ok := lhs.Ptr.(string)
+			if !ok {
+				return err
+			}
+
+			rs, ok := rhs.Ptr.(string)
+			if !ok {
+				return err
+			}
+
+			v.B = ls == rs
+		}
 	}
 
 	vm.push(v)

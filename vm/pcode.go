@@ -84,6 +84,8 @@ func (op OpCode) String() string {
 		return "OP_MINUS"
 	case OpMultiply:
 		return "OP_MULTIPLY"
+	case OpNotEqual:
+		return "OP_NOT_EQUAL"
 	case OpReturn:
 		return "OP_RETURN"
 	case OpSetGlobal:
@@ -161,17 +163,11 @@ func (c PCode) String() string {
 			{
 				i++ // ignore depth level
 			}
-		case OpJump, OpJumpIfFalse:
+		case OpJump, OpJumpIfFalse, OpLoop:
 			{
 				i++
 				offset := int(c.Code[i])
 				s.WriteString(fmt.Sprintf(" %d -> %d", offset, i+offset-1))
-			}
-		case OpLoop:
-			{
-				i++
-				offset := int(c.Code[i])
-				s.WriteString(fmt.Sprintf(" %d -> %d", offset, i-offset-1))
 			}
 		}
 
