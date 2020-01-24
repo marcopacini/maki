@@ -7,3 +7,14 @@ while i < 3 {
 // expect: 1
 // expect: 2
 // expect: 3
+
+while false { print "not printed" }
+
+{
+    var x
+
+    while x != nil {
+        print "inside while" // expect: inside while
+        x = nil
+    }
+}

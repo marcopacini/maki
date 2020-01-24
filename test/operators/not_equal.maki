@@ -1,0 +1,14 @@
+print true != true // expect: false
+print true != false // expect: true
+
+print 42 != 42 // expect: false
+print 42 != 0 // expect: true
+
+print 3.14 != 3.14 // expect: false
+print 3.14 != 2.71 // expect: true
+
+print "Hello, World!" != "Hello, World!" // expect: false
+print "Hello, World!" != "Hello, Maki!" // expect: true
+
+var p
+print p != nil // expect: false

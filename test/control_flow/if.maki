@@ -1,21 +1,30 @@
 if true {
-    print "Hello, Maki!" // expect: Hello, Maki!
-}
+     print "Hello, Maki!" // expect: Hello, Maki!
+ }
 
-if false {
-    print "not printed"
-}
+ if false {
+     print "not printed"
+ }
 
-let name = "Maki"
+ let name = "Maki"
 
-if name == "Maki" {
-    print "Hello, " + name + "!" // expect: Hello, Maki!
-} else {
-    print "Hello, unknown!"
-}
+ if name == "Maki" {
+     print "Hello, " + name + "!" // expect: Hello, Maki!
+ } else {
+     print "Hello, unknown!"
+ }
 
-if name == "maki" {
-    print "Hello, " + name + "!"
-} else {
-    print "Hello, unknown!" // expect: Hello, unknown!
-}
+ if name != "Maki" {
+     print "Hello, " + name + "!"
+ } else {
+     print "Hello, unknown!" // expect: Hello, unknown!
+ }
+
+ {
+     var p
+     if p == nil {
+         print "p is nil" // expect: p is nil
+     } else {
+        print p
+     }
+ }
