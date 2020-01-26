@@ -1,0 +1,3 @@
+print true or false // expect: true
+print false or true // expect: true
+print false or false // expect: false

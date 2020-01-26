@@ -58,6 +58,7 @@ func getRule(tt TokenType) rule {
 		NotEqual:        {prefix: nil, infix: (*Compiler).binary, precedence: PrecEquality},
 		Number:          {prefix: (*Compiler).number, infix: nil, precedence: PrecNone},
 		Plus:            {prefix: nil, infix: (*Compiler).binary, precedence: PrecTerm},
+		Or:              {prefix: nil, infix: (*Compiler).or, precedence: PrecOr},
 		Slash:           {prefix: nil, infix: (*Compiler).binary, precedence: PrecFactor},
 		Star:            {prefix: nil, infix: (*Compiler).binary, precedence: PrecFactor},
 		String:          {prefix: (*Compiler).string, infix: nil, precedence: PrecNone},
@@ -145,6 +146,21 @@ func (c *Compiler) and(_ bool) error {
 	}
 
 	c.applyPatch(jump)
+	return nil
+}
+
+func (c *Compiler) or(_ bool) error {
+	elseJump := c.emitJump(vm.OpJumpIfFalse)
+	thenJump := c.emitJump(vm.OpJump)
+
+	c.applyPatch(elseJump)
+	c.emitByte(vm.OpPop)
+
+	if err := c.parsePrecedence(PrecOr); err != nil {
+		return err
+	}
+	c.applyPatch(thenJump)
+
 	return nil
 }
 
