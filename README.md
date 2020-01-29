@@ -6,3 +6,9 @@ production ready and ~~probably~~ will never be.
 ```
 io.println("Hello, World!")
 ```
+
+### Nice to have
+
+- `switch` statement
+- `break` statement
+- `continue` statement
