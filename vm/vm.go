@@ -323,7 +323,7 @@ func (vm *VM) setGlobal() error {
 
 func (vm *VM) setLocal() {
 	addr := int(vm.readByte())
-	vm.stack[addr] = *vm.top()
+	vm.stack[addr] = vm.pop()
 }
 
 func (vm *VM) notEqual() error {

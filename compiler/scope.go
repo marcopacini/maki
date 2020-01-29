@@ -33,7 +33,7 @@ func (s *scope) addGlobal(identifier string, modifiable bool) {
 	s.globals[identifier] = modifiable
 }
 
-func (s *scope) addLocal(identifier string, modifiable bool) error {
+func (s *scope) addLocal(t Token, modifiable bool) error {
 	if s.count >= size {
 		return fmt.Errorf("compile error, too many variables in local scope")
 	}
@@ -45,14 +45,14 @@ func (s *scope) addLocal(identifier string, modifiable bool) error {
 			break
 		}
 
-		if local.identifier == identifier {
-			return fmt.Errorf("compile error, variable '%s' is already defined in this scope", local.identifier)
+		if local.identifier == t.Lexeme {
+			return fmt.Errorf("compile error, variable '%s' is already defined in this scope [line %d]", t.Lexeme, t.Line)
 		}
 	}
 
 	local := &s.locals[s.count]
 
-	local.identifier = identifier
+	local.identifier = t.Lexeme
 	local.modifiable = modifiable
 	local.depth = s.depth
 
@@ -75,6 +75,12 @@ func (s *scope) begin() {
 	s.depth += 1
 }
 
-func (s *scope) end() {
+func (s *scope) end(cancel func()) {
 	s.depth -= 1
+
+	// clean variable out of scope
+	for !s.isEmpty() && s.locals[s.count-1].depth > s.depth {
+		cancel()
+		s.count--
+	}
 }

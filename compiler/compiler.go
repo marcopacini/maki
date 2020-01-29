@@ -276,16 +276,20 @@ func (c *Compiler) statement() error {
 		return c.block()
 	}
 
-	if c.match(Var, Let) {
-		return c.variable()
-	}
-
 	if c.match(If) {
 		return c.ifStatement()
 	}
 
 	if c.match(While) {
 		return c.whileStatement()
+	}
+
+	if c.match(For) {
+		return c.forStatement()
+	}
+
+	if c.match(Var, Let) {
+		return c.variable()
 	}
 
 	if err := c.expression(false); err != nil {
@@ -312,13 +316,8 @@ func (c *Compiler) block() error {
 		return err
 	}
 
-	c.scope.end()
+	c.scope.end(func() { c.emitByte(vm.OpPop) })
 
-	// clean variable out of scope
-	for !c.scope.isEmpty() && c.scope.locals[c.scope.count-1].depth > c.scope.depth {
-		c.emitByte(vm.OpPop)
-		c.scope.count--
-	}
 	return nil
 }
 
@@ -347,15 +346,15 @@ func (c *Compiler) unary(_ bool) error {
 // variable declaration parser
 func (c *Compiler) variable() error {
 	modifiable := c.previous.TokenType == Var
+	identifier := c.current
 
 	if err := c.consume(Identifier); err != nil {
 		return err
 	}
-	identifier := c.previous.Lexeme
 
 	// declare variable
 	if c.scope.depth > 0 {
-		if err := c.addLocal(identifier, modifiable); err != nil {
+		if err := c.addLocal(*identifier, modifiable); err != nil {
 			return err
 		}
 	}
@@ -369,8 +368,10 @@ func (c *Compiler) variable() error {
 		v := vm.Value{ValueType: vm.Nil}
 		c.emitConstant(v)
 	}
-	if err := c.consume(Semicolon, NewLine); err != nil {
-		return err
+	if c.current.TokenType != RightBrace { // check if it's last statement in block
+		if err := c.consume(Semicolon, NewLine); err != nil {
+			return err
+		}
 	}
 
 	if c.scope.depth > 0 {
@@ -379,9 +380,13 @@ func (c *Compiler) variable() error {
 	}
 
 	// define variable as global
+	if _, ok := c.scope.globals[identifier.Lexeme]; ok {
+		return fmt.Errorf("compile error, variable '%s' is already defined in global scope [line %d]", identifier.Lexeme, identifier.Line)
+	}
+
 	c.emitByte(vm.OpDefineGlobal)
-	c.WriteIdentifier(identifier, c.current.Line)
-	c.scope.addGlobal(identifier, modifiable)
+	c.WriteIdentifier(identifier.Lexeme, identifier.Line)
+	c.scope.addGlobal(identifier.Lexeme, modifiable)
 	return nil
 }
 
@@ -454,22 +459,61 @@ func (c *Compiler) ifStatement() error {
 }
 
 func (c *Compiler) whileStatement() error {
-	loopStart := c.getCurrentAddress()
-
 	// condition
+	loopStart := c.getCurrentAddress()
 	if err := c.expression(false); err != nil {
 		return err
 	}
-
 	exitJump := c.emitJump(vm.OpJumpIfFalse)
 
+	// body
 	c.emitByte(vm.OpPop)
 	if err := c.statement(); err != nil {
 		return err
 	}
 	c.emitLoop(loopStart)
+	c.applyPatch(exitJump)
+
+	return nil
+}
+
+func (c *Compiler) forStatement() error {
+	c.scope.begin()
+
+	// initializer
+	if err := c.declaration(false); err != nil {
+		return err
+	}
+
+	// condition
+	conditionLoop := c.getCurrentAddress()
+	if err := c.expression(false); err != nil {
+		return err
+	}
+	if err := c.consume(Semicolon); err != nil {
+		return err
+	}
+	exitJump := c.emitJump(vm.OpJumpIfFalse)
+	c.emitByte(vm.OpPop) // pop condition value
+	bodyJump := c.emitJump(vm.OpJump)
+
+	// increment
+	incrementLoop := c.getCurrentAddress()
+	if err := c.expression(false); err != nil {
+		return err
+	}
+	c.emitLoop(conditionLoop)
+
+	// body
+	c.applyPatch(bodyJump)
+	if err := c.statement(); err != nil {
+		return err
+	}
+	c.emitLoop(incrementLoop)
 
 	c.applyPatch(exitJump)
+	c.emitByte(vm.OpPop) // pop condition value
+	c.scope.end(func() { c.emitByte(vm.OpPop) })
 
 	return nil
 }

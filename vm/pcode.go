@@ -162,12 +162,19 @@ func (c PCode) String() string {
 		case OpGetLocal, OpSetLocal:
 			{
 				i++ // ignore depth level
+				s.WriteString(fmt.Sprintf(" at %d", c.Code[i]))
 			}
-		case OpJump, OpJumpIfFalse, OpLoop:
+		case OpJump, OpJumpIfFalse:
 			{
 				i++
 				offset := int(c.Code[i])
 				s.WriteString(fmt.Sprintf(" %d -> %d", offset, i+offset-1))
+			}
+		case OpLoop:
+			{
+				i++
+				offset := int(c.Code[i])
+				s.WriteString(fmt.Sprintf(" %d -> %d", offset, i-offset-1))
 			}
 		}
 

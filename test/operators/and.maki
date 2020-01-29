@@ -1,2 +1,3 @@
+print false and true // expect: false
 print true and false // expect: false
 print true and true  // expect: true
