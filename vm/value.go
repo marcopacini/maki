@@ -15,31 +15,34 @@ const (
 
 type Value struct {
 	ValueType
-	B   bool
-	N   float64
-	Ptr interface{}
+	Boolean bool
+	Float   float64
+	Ptr     interface{}
 }
 
-func (v Value) Bool() bool {
-	if v.ValueType == Bool && v.B {
+func (v Value) BoolValue() bool {
+	if v.ValueType == Bool && v.Boolean {
 		return true
 	}
-
 	return false
 }
 
 func (v Value) String() string {
 	switch v.ValueType {
 	case Bool:
-		return strconv.FormatBool(v.B)
+		return strconv.FormatBool(v.Boolean)
 	case Nil:
 		return "Nil"
 	case Number:
-		return strconv.FormatFloat(v.N, 'f', 0, 64)
+		return strconv.FormatFloat(v.Float, 'f', 0, 64)
 	case Object:
 		{
-			if s, ok := v.Ptr.(string); ok {
-				return s
+			switch value := v.Ptr.(type) {
+			case string:
+				return value
+			case Function:
+				return "<fun " + value.name + ">"
+
 			}
 		}
 	}

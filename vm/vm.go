@@ -45,10 +45,10 @@ func (vm *VM) readByte() OpCode {
 	return vm.Code[vm.ip]
 }
 
-func (vm *VM) Run(pcode *PCode) error {
+func (vm *VM) Run(fun *Function) error {
 	vm.ip = 0
 	vm.sp = 0
-	vm.PCode = pcode
+	vm.PCode = fun.PCode
 
 	for {
 		switch vm.Code[vm.ip] {
@@ -186,7 +186,7 @@ func (vm *VM) add() error {
 	err := fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 
 	if lhs.ValueType == Number && rhs.ValueType == Number {
-		v := Value{ValueType: Number, N: lhs.N + rhs.N}
+		v := Value{ValueType: Number, Float: lhs.Float + rhs.Float}
 		vm.push(v)
 		return nil
 	}
@@ -223,7 +223,7 @@ func (vm *VM) defineGlobal() {
 
 func (vm *VM) divide() {
 	rhs, lhs := vm.getOperands()
-	v := Value{ValueType: Number, N: lhs.N / rhs.N}
+	v := Value{ValueType: Number, Float: lhs.Float / rhs.Float}
 	vm.push(v)
 }
 
@@ -232,11 +232,11 @@ func (vm *VM) equalEqual() error {
 
 	err := fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 
-	v := Value{ValueType: Bool, B: true}
+	v := Value{ValueType: Bool, Boolean: true}
 
 	if lhs.ValueType != rhs.ValueType {
 		if lhs.ValueType == Nil || rhs.ValueType == Nil {
-			v.B = false
+			v.Boolean = false
 			vm.push(v)
 			return nil
 		} else {
@@ -246,9 +246,9 @@ func (vm *VM) equalEqual() error {
 
 	switch lhs.ValueType {
 	case Bool:
-		v.B = lhs.B == rhs.B
+		v.Boolean = lhs.Boolean == rhs.Boolean
 	case Number:
-		v.B = lhs.N == rhs.N
+		v.Boolean = lhs.Float == rhs.Float
 	case Object:
 		{
 			ls, ok := lhs.Ptr.(string)
@@ -261,7 +261,7 @@ func (vm *VM) equalEqual() error {
 				return err
 			}
 
-			v.B = ls == rs
+			v.Boolean = ls == rs
 		}
 	}
 
@@ -297,7 +297,7 @@ func (vm *VM) jump() {
 }
 
 func (vm *VM) jumpIfFalse() {
-	if !vm.top().Bool() {
+	if !vm.top().BoolValue() {
 		vm.jump()
 	} else {
 		_ = vm.readByte() // skip jump address instruction
@@ -331,11 +331,11 @@ func (vm *VM) notEqual() error {
 
 	err := fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 
-	v := Value{ValueType: Bool, B: false}
+	v := Value{ValueType: Bool, Boolean: false}
 
 	if lhs.ValueType != rhs.ValueType {
 		if lhs.ValueType == Nil || rhs.ValueType == Nil {
-			v.B = true
+			v.Boolean = true
 			vm.push(v)
 			return nil
 		} else {
@@ -345,9 +345,9 @@ func (vm *VM) notEqual() error {
 
 	switch lhs.ValueType {
 	case Bool:
-		v.B = lhs.B != rhs.B
+		v.Boolean = lhs.Boolean != rhs.Boolean
 	case Number:
-		v.B = lhs.N != rhs.N
+		v.Boolean = lhs.Float != rhs.Float
 	case Object:
 		{
 			ls, ok := lhs.Ptr.(string)
@@ -360,7 +360,7 @@ func (vm *VM) notEqual() error {
 				return err
 			}
 
-			v.B = ls != rs
+			v.Boolean = ls != rs
 		}
 	}
 
@@ -375,7 +375,7 @@ func (vm *VM) greater() error {
 		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
-	v := Value{ValueType: Bool, B: lhs.N > rhs.N}
+	v := Value{ValueType: Bool, Boolean: lhs.Float > rhs.Float}
 	vm.push(v)
 
 	return nil
@@ -388,7 +388,7 @@ func (vm *VM) greaterEqual() error {
 		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
-	v := Value{ValueType: Bool, B: lhs.N >= rhs.N}
+	v := Value{ValueType: Bool, Boolean: lhs.Float >= rhs.Float}
 	vm.push(v)
 
 	return nil
@@ -401,7 +401,7 @@ func (vm *VM) less() error {
 		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
-	v := Value{ValueType: Bool, B: lhs.N < rhs.N}
+	v := Value{ValueType: Bool, Boolean: lhs.Float < rhs.Float}
 	vm.push(v)
 
 	return nil
@@ -414,7 +414,7 @@ func (vm *VM) lessEqual() error {
 		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
-	v := Value{ValueType: Bool, B: lhs.N <= rhs.N}
+	v := Value{ValueType: Bool, Boolean: lhs.Float <= rhs.Float}
 	vm.push(v)
 
 	return nil
@@ -427,13 +427,13 @@ func (vm *VM) minus() error {
 		return fmt.Errorf("maki :: runtime error, operand must be a number [line %d]", vm.getCurrentLine())
 	}
 
-	v.N = -v.N
+	v.Float = -v.Float
 	return nil
 }
 
 func (vm *VM) multiply() {
 	rhs, lhs := vm.getOperands()
-	v := Value{ValueType: Number, N: lhs.N * rhs.N}
+	v := Value{ValueType: Number, Float: lhs.Float * rhs.Float}
 	vm.push(v)
 }
 
@@ -448,12 +448,12 @@ func (vm *VM) not() {
 	switch lhs.ValueType {
 	case Bool:
 		{
-			v := Value{ValueType: Bool, B: !lhs.B}
+			v := Value{ValueType: Bool, Boolean: !lhs.Boolean}
 			vm.push(v)
 		}
 	default:
 		{
-			v := Value{ValueType: Bool, B: true}
+			v := Value{ValueType: Bool, Boolean: true}
 			vm.push(v)
 		}
 	}
@@ -463,7 +463,7 @@ func (vm *VM) subtract() {
 	rhs, lhs := vm.getOperands()
 	v := Value{
 		ValueType: Number,
-		N:         lhs.N - rhs.N,
+		Float:     lhs.Float - rhs.Float,
 	}
 	vm.push(v)
 }

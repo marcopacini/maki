@@ -7,7 +7,7 @@ import (
 )
 
 type Compiler struct {
-	*vm.PCode
+	*vm.Function
 	*parser
 	*scope
 }
@@ -113,8 +113,8 @@ func (c *Compiler) parsePrecedence(prec precedence) error {
 	return nil
 }
 
-func (c *Compiler) Compile(source string) (*vm.PCode, error) {
-	c.PCode = vm.NewPCode()
+func (c *Compiler) Compile(source string) (*vm.Function, error) {
+	c.Function = vm.NewFunction("MAIN")
 	c.parser = newParser(source)
 
 	if err := c.advance(); err != nil {
@@ -134,7 +134,7 @@ func (c *Compiler) Compile(source string) (*vm.PCode, error) {
 	// temporary exit statement
 	c.emitByte(vm.OpReturn)
 
-	return c.PCode, nil
+	return c.Function, nil
 }
 
 func (c *Compiler) and(_ bool) error {
@@ -224,7 +224,7 @@ func (c *Compiler) literal(_ bool) error {
 	switch c.previous.TokenType {
 	case False:
 		{
-			v := vm.Value{ValueType: vm.Bool, B: false}
+			v := vm.Value{ValueType: vm.Bool, Boolean: false}
 			c.emitConstant(v)
 		}
 	case Nil:
@@ -234,7 +234,7 @@ func (c *Compiler) literal(_ bool) error {
 		}
 	case True:
 		{
-			v := vm.Value{ValueType: vm.Bool, B: true}
+			v := vm.Value{ValueType: vm.Bool, Boolean: true}
 			c.emitConstant(v)
 		}
 	}
@@ -247,7 +247,7 @@ func (c *Compiler) number(_ bool) error {
 		return err
 	}
 
-	v := vm.Value{ValueType: vm.Number, N: n}
+	v := vm.Value{ValueType: vm.Number, Float: n}
 	c.emitConstant(v)
 	return nil
 }
