@@ -79,14 +79,14 @@ func runFile(path string) error {
 }
 
 func interpret(c *compiler.Compiler, vm *vm.VM, source string) error {
-	pcode, err := c.Compile(source)
+	fun, err := c.Compile(source)
 	if err != nil {
 		return err
 	}
 
 	if debug {
-		fmt.Print(pcode)
+		fmt.Print(fun)
 	}
 
-	return vm.Run(pcode)
+	return vm.Run(fun)
 }

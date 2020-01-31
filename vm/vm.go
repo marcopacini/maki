@@ -5,23 +5,29 @@ import (
 )
 
 const (
-	StackSize  = 256
+	FrameSize  = 64
 	GlobalSize = 64
+	StackSize  = 256
 )
 
+type CallFrame struct {
+	*Function
+}
+
 type VM struct {
-	*PCode
 	ip      int
-	stack   [StackSize]Value
 	sp      int
+	stack   [StackSize]Value
+	fp      int
+	frames  [FrameSize]CallFrame
 	globals map[string]Value
 }
 
 func NewVM() *VM {
 	return &VM{
-		PCode:   nil,
 		ip:      0,
 		sp:      0,
+		fp:      0,
 		globals: make(map[string]Value, GlobalSize),
 	}
 }
@@ -40,18 +46,26 @@ func (vm *VM) pop() Value {
 	return vm.stack[vm.sp]
 }
 
+func (vm *VM) peekByte() OpCode {
+	return vm.frames[vm.fp].Code[vm.ip]
+}
+
 func (vm *VM) readByte() OpCode {
 	vm.ip++
-	return vm.Code[vm.ip]
+	return vm.frames[vm.fp].Code[vm.ip-1]
 }
 
 func (vm *VM) Run(fun *Function) error {
 	vm.ip = 0
 	vm.sp = 0
-	vm.PCode = fun.PCode
+	vm.fp = 0
+
+	vm.frames[vm.sp] = CallFrame{
+		Function: fun,
+	}
 
 	for {
-		switch vm.Code[vm.ip] {
+		switch vm.readByte() {
 		case OpAdd:
 			{
 				if err := vm.add(); err != nil {
@@ -174,10 +188,9 @@ func (vm *VM) Run(fun *Function) error {
 			}
 		default:
 			{
-				return fmt.Errorf("maki :: runtime error, op code %04d not yet implemented", vm.Code[vm.ip])
+				return fmt.Errorf("maki :: runtime error, op code %04d not yet implemented", vm.peekByte())
 			}
 		}
-		vm.ip++
 	}
 }
 
@@ -212,12 +225,12 @@ func (vm *VM) add() error {
 
 func (vm *VM) constant() {
 	addr := int(vm.readByte())
-	vm.push(vm.Constants.At(addr))
+	vm.push(vm.frames[vm.fp].Constants.At(addr))
 }
 
 func (vm *VM) defineGlobal() {
 	addr := int(vm.readByte())
-	identifier, _ := vm.Constants.At(addr).Ptr.(string)
+	identifier, _ := vm.frames[vm.fp].Constants.At(addr).Ptr.(string)
 	vm.globals[identifier] = vm.pop()
 }
 
@@ -271,7 +284,7 @@ func (vm *VM) equalEqual() error {
 
 func (vm *VM) getGlobal() error {
 	addr := int(vm.readByte())
-	identifier, _ := vm.Constants.At(addr).Ptr.(string)
+	identifier, _ := vm.frames[vm.fp].Constants.At(addr).Ptr.(string)
 
 	v, ok := vm.globals[identifier]
 	if !ok {
@@ -311,7 +324,7 @@ func (vm *VM) loop() {
 
 func (vm *VM) setGlobal() error {
 	addr := int(vm.readByte())
-	identifier, _ := vm.Constants.At(addr).Ptr.(string)
+	identifier, _ := vm.frames[vm.fp].Constants.At(addr).Ptr.(string)
 
 	if _, ok := vm.globals[identifier]; !ok {
 		return fmt.Errorf("maki :: runtime error, variable '%s' not defined [line %d]", identifier, vm.getCurrentLine())
@@ -473,7 +486,7 @@ func (vm *VM) getOperands() (Value, Value) {
 }
 
 func (vm *VM) getCurrentLine() int {
-	line, err := vm.Lines.At(vm.ip)
+	line, err := vm.frames[vm.fp].Lines.At(vm.ip)
 	if err != nil {
 		panic(err.Error())
 	}
