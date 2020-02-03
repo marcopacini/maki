@@ -12,6 +12,7 @@ const (
 
 type CallFrame struct {
 	*Function
+	rp int
 }
 
 type VM struct {
@@ -69,6 +70,12 @@ func (vm *VM) Run(fun *Function) error {
 		case OpAdd:
 			{
 				if err := vm.add(); err != nil {
+					return err
+				}
+			}
+		case OpCall:
+			{
+				if err := vm.call(); err != nil {
 					return err
 				}
 			}
@@ -221,6 +228,31 @@ func (vm *VM) add() error {
 	}
 
 	return err
+}
+
+func (vm *VM) call() error {
+	v := vm.pop()
+
+	if v.ValueType != Object {
+		return fmt.Errorf("maki :: runtime error, %s is not callable [line %d]", v.String(), vm.getCurrentLine())
+	}
+
+	if v.ValueType == Object {
+		if f, ok := v.Ptr.(*Function); !ok {
+			return fmt.Errorf("maki :: runtime error, %s is not callable [line %d]", v.String(), vm.getCurrentLine())
+		} else {
+			vm.fp++
+			vm.frames[vm.fp] = CallFrame{
+				Function: f,
+				rp:       vm.ip,
+			}
+			vm.ip = 0
+		}
+	}
+
+	vm.push(Value{ValueType: Nil})
+
+	return nil
 }
 
 func (vm *VM) constant() {

@@ -40,9 +40,8 @@ func (v Value) String() string {
 			switch value := v.Ptr.(type) {
 			case string:
 				return value
-			case Function:
-				return "<fun " + value.name + ">"
-
+			case *Function:
+				return value.name
 			}
 		}
 	}

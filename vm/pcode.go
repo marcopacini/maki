@@ -28,9 +28,9 @@ type OpCode uint8
 
 const (
 	OpAdd OpCode = iota
-	OpValue
 	OpDefineGlobal
 	OpDivide
+	OpCall
 	OpEqualEqual
 	OpGetGlobal
 	OpGetLocal
@@ -52,12 +52,15 @@ const (
 	OpSetGlobal
 	OpSetLocal
 	OpSubtract
+	OpValue
 )
 
 func (op OpCode) String() string {
 	switch op {
 	case OpAdd:
 		return "OP_ADD"
+	case OpCall:
+		return "OP_CALL"
 	case OpDefineGlobal:
 		return "OP_DEFINE_GLOBAL"
 	case OpEqualEqual:
@@ -156,8 +159,20 @@ func (c PCode) String() string {
 		case OpValue, OpDefineGlobal, OpGetGlobal, OpSetGlobal:
 			{
 				i++
-				addr := int(c.Code[i])
-				s.WriteString(fmt.Sprintf(" '%v'", c.Constants.At(addr)))
+				v := c.Constants.At(int(c.Code[i]))
+				switch v.ValueType {
+				case Object:
+					{
+						s.WriteString(fmt.Sprintf(" '%s'", v))
+						if _, ok := v.Ptr.(*Function); ok {
+							s.WriteString(" __fun__")
+						}
+					}
+				default:
+					{
+						s.WriteString(fmt.Sprintf("'%s'", v))
+					}
+				}
 			}
 		case OpGetLocal, OpSetLocal:
 			{

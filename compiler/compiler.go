@@ -49,7 +49,7 @@ func getRule(tt TokenType) rule {
 		Greater:         {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
 		GreaterEqual:    {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
 		Identifier:      {prefix: (*Compiler).identifier, infix: nil, precedence: PrecNone},
-		LeftParenthesis: {prefix: (*Compiler).grouping, infix: nil, precedence: PrecNone},
+		LeftParenthesis: {prefix: (*Compiler).grouping, infix: (*Compiler).call, precedence: PrecCall},
 		Less:            {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
 		LessEqual:       {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
 		Minus:           {prefix: (*Compiler).unary, infix: (*Compiler).binary, precedence: PrecTerm},
@@ -198,6 +198,17 @@ func (c *Compiler) binary(_ bool) error {
 	return nil
 }
 
+func (c *Compiler) call(_ bool) error {
+	if err := c.consume(RightParenthesis); err != nil {
+		return err
+	}
+	c.emitByte(vm.OpCall)
+	if err := c.consume(NewLine, Semicolon, Eof); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *Compiler) expression(_ bool) error {
 	if err := c.parsePrecedence(PrecAssignment); err != nil {
 		return err
@@ -268,39 +279,56 @@ func (c *Compiler) print() error {
 }
 
 func (c *Compiler) statement() error {
-	if c.match(Print) {
-		return c.print()
-	}
+	switch c.current.TokenType {
+	case Print:
+		{
+			_ = c.advance()
+			return c.print()
+		}
+	case LeftBrace:
+		{
+			_ = c.advance()
+			return c.block()
+		}
+	case If:
+		{
+			_ = c.advance()
+			return c.ifStatement()
+		}
+	case While:
+		{
+			_ = c.advance()
+			return c.whileStatement()
+		}
+	case For:
+		{
+			_ = c.advance()
+			return c.forStatement()
+		}
+	case Var, Let:
+		{
+			_ = c.advance()
+			return c.variable()
+		}
+	case Fun:
+		{
+			_ = c.advance()
+			return c.funStatement()
+		}
+	default:
+		{
+			if err := c.expression(false); err != nil {
+				return err
+			}
 
-	if c.match(LeftBrace) {
-		return c.block()
-	}
+			if err := c.consume(Semicolon, NewLine, Eof); err != nil {
+				return err
+			}
 
-	if c.match(If) {
-		return c.ifStatement()
+			c.emitByte(vm.OpPop)
+			return nil
+		}
 	}
-
-	if c.match(While) {
-		return c.whileStatement()
-	}
-
-	if c.match(For) {
-		return c.forStatement()
-	}
-
-	if c.match(Var, Let) {
-		return c.variable()
-	}
-
-	if err := c.expression(false); err != nil {
-		return err
-	}
-
-	if err := c.consume(Semicolon, NewLine, Eof); err != nil {
-		return err
-	}
-	c.emitByte(vm.OpPop)
-	return nil
 }
 
 // block statements parser
@@ -426,6 +454,48 @@ func (c *Compiler) identifier(assignable bool) error {
 	} else {
 		c.WriteIdentifier(identifier, c.current.Line)
 	}
+
+	return nil
+}
+
+func (c *Compiler) funStatement() error {
+	fun := c.Function
+	t := c.current
+
+	c.Function = vm.NewFunction(t.Lexeme)
+
+	if err := c.consume(Identifier); err != nil {
+		return err
+	}
+
+	if err := c.consume(LeftParenthesis); err != nil {
+		return err
+	}
+
+	if err := c.consume(RightParenthesis); err != nil {
+		return err
+	}
+
+	if err := c.consume(LeftBrace); err != nil {
+		return err
+	}
+
+	if err := c.block(); err != nil {
+		return err
+	}
+	c.emitByte(vm.OpReturn)
+
+	v := vm.Value{
+		ValueType: vm.Object,
+		Ptr:       c.Function,
+	}
+
+	c.Function = fun
+
+	c.emitConstant(v)
+	c.emitByte(vm.OpDefineGlobal)
+	c.WriteIdentifier(t.Lexeme, t.Line)
+	c.scope.addGlobal(t.Lexeme, false)
 
 	return nil
 }
