@@ -52,6 +52,7 @@ const (
 	OpSetGlobal
 	OpSetLocal
 	OpSubtract
+	OpTerminate
 	OpValue
 )
 
@@ -95,10 +96,14 @@ func (op OpCode) String() string {
 		return "OP_SET_GLOBAL"
 	case OpSetLocal:
 		return "OP_SET_LOCAL"
+	case OpSubtract:
+		return "OP_SUBTRACT"
 	case OpPop:
 		return "OP_POP"
 	case OpPrint:
 		return "OP_PRINT"
+	case OpTerminate:
+		return "OP_TERMINATE"
 	case OpValue:
 		return "OP_VALUE"
 	default:
@@ -138,6 +143,7 @@ func (c *PCode) WriteIdentifier(identifier string, line int) {
 
 func (c PCode) String() string {
 	var s strings.Builder
+	fs := make([]*Function, 0)
 
 	line := -1
 	for i := 0; i < len(c.Code); i++ {
@@ -164,13 +170,14 @@ func (c PCode) String() string {
 				case Object:
 					{
 						s.WriteString(fmt.Sprintf(" '%s'", v))
-						if _, ok := v.Ptr.(*Function); ok {
+						if f, ok := v.Ptr.(*Function); ok {
 							s.WriteString(" __fun__")
+							fs = append(fs, f)
 						}
 					}
 				default:
 					{
-						s.WriteString(fmt.Sprintf("'%s'", v))
+						s.WriteString(fmt.Sprintf(" '%s'", v))
 					}
 				}
 			}
@@ -194,6 +201,11 @@ func (c PCode) String() string {
 		}
 
 		s.WriteString("\n")
+	}
+
+	for _, f := range fs {
+		s.WriteString("\n__" + f.Name + "__\n")
+		s.WriteString(f.PCode.String())
 	}
 
 	return s.String()

@@ -1,0 +1,12 @@
+fun greet() {
+    print "Hello, Maki!"
+}
+
+greet() // expect: Hello, Maki!
+
+fun greet2() {
+    let s = "Hello, Maki!"
+    print s
+}
+
+greet2() // expect: Hello, Maki!

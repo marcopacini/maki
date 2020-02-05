@@ -41,7 +41,7 @@ func (v Value) String() string {
 			case string:
 				return value
 			case *Function:
-				return value.name
+				return value.Name
 			}
 		}
 	}

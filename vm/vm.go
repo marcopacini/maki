@@ -12,7 +12,8 @@ const (
 
 type CallFrame struct {
 	*Function
-	rp int
+	rp     int
+	locals int
 }
 
 type VM struct {
@@ -177,7 +178,7 @@ func (vm *VM) Run(fun *Function) error {
 			}
 		case OpReturn:
 			{
-				return nil
+				vm.callReturn()
 			}
 		case OpSetGlobal:
 			{
@@ -192,6 +193,10 @@ func (vm *VM) Run(fun *Function) error {
 		case OpSubtract:
 			{
 				vm.subtract()
+			}
+		case OpTerminate:
+			{
+				return nil
 			}
 		default:
 			{
@@ -245,14 +250,19 @@ func (vm *VM) call() error {
 			vm.frames[vm.fp] = CallFrame{
 				Function: f,
 				rp:       vm.ip,
+				locals:   vm.sp,
 			}
 			vm.ip = 0
 		}
 	}
 
-	vm.push(Value{ValueType: Nil})
-
 	return nil
+}
+
+func (vm *VM) callReturn() {
+	vm.push(Value{}) // TODO: temporary value for prevent crash
+	vm.ip = vm.frames[vm.fp].rp
+	vm.fp--
 }
 
 func (vm *VM) constant() {
@@ -329,7 +339,7 @@ func (vm *VM) getGlobal() error {
 
 func (vm *VM) getLocal() {
 	addr := int(vm.readByte())
-	v := vm.stack[addr]
+	v := vm.stack[vm.frames[vm.fp].locals+addr]
 	vm.push(v)
 }
 

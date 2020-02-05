@@ -131,8 +131,7 @@ func (c *Compiler) Compile(source string) (*vm.Function, error) {
 		return nil, err
 	}
 
-	// temporary exit statement
-	c.emitByte(vm.OpReturn)
+	c.emitByte(vm.OpTerminate)
 
 	return c.Function, nil
 }
@@ -267,13 +266,6 @@ func (c *Compiler) print() error {
 	if err := c.expression(false); err != nil {
 		return err
 	}
-
-	if !c.check(RightBrace) {
-		if err := c.consume(Semicolon, NewLine, Eof); err != nil {
-			return err
-		}
-	}
-
 	c.emitByte(vm.OpPrint)
 	return nil
 }
@@ -283,37 +275,51 @@ func (c *Compiler) statement() error {
 	case Print:
 		{
 			_ = c.advance()
-			return c.print()
+			if err := c.print(); err != nil {
+				return err
+			}
 		}
 	case LeftBrace:
 		{
 			_ = c.advance()
-			return c.block()
+			if err := c.block(); err != nil {
+				return err
+			}
 		}
 	case If:
 		{
 			_ = c.advance()
-			return c.ifStatement()
+			if err := c.ifStatement(); err != nil {
+				return err
+			}
 		}
 	case While:
 		{
 			_ = c.advance()
-			return c.whileStatement()
+			if err := c.whileStatement(); err != nil {
+				return err
+			}
 		}
 	case For:
 		{
 			_ = c.advance()
-			return c.forStatement()
+			if err := c.forStatement(); err != nil {
+				return err
+			}
 		}
 	case Var, Let:
 		{
 			_ = c.advance()
-			return c.variable()
+			if err := c.variable(); err != nil {
+				return err
+			}
 		}
 	case Fun:
 		{
 			_ = c.advance()
-			return c.funStatement()
+			if err := c.funStatement(); err != nil {
+				return err
+			}
 		}
 	default:
 		{
@@ -329,6 +335,13 @@ func (c *Compiler) statement() error {
 			return nil
 		}
 	}
+
+	if c.current.TokenType != RightBrace && c.current.TokenType != Eof { // check if it's last statement in block
+		if err := c.consume(Semicolon, NewLine); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // block statements parser
@@ -396,11 +409,6 @@ func (c *Compiler) variable() error {
 		v := vm.Value{ValueType: vm.Nil}
 		c.emitConstant(v)
 	}
-	if c.current.TokenType != RightBrace { // check if it's last statement in block
-		if err := c.consume(Semicolon, NewLine); err != nil {
-			return err
-		}
-	}
 
 	if c.scope.depth > 0 {
 		// local scope
@@ -463,6 +471,7 @@ func (c *Compiler) funStatement() error {
 	t := c.current
 
 	c.Function = vm.NewFunction(t.Lexeme)
+	c.begin()
 
 	if err := c.consume(Identifier); err != nil {
 		return err
@@ -470,6 +479,17 @@ func (c *Compiler) funStatement() error {
 
 	if err := c.consume(LeftParenthesis); err != nil {
 		return err
+	}
+
+	for c.current.TokenType != RightParenthesis {
+		fun.Arity++
+		c.trim(Var)
+
+		if err := c.variable(); err != nil {
+			return err
+		}
+
+		c.trim(Comma)
 	}
 
 	if err := c.consume(RightParenthesis); err != nil {
@@ -483,6 +503,7 @@ func (c *Compiler) funStatement() error {
 	if err := c.block(); err != nil {
 		return err
 	}
+	c.end(func() { c.emitByte(vm.OpPop) })
 	c.emitByte(vm.OpReturn)
 
 	v := vm.Value{
@@ -510,7 +531,10 @@ func (c *Compiler) ifStatement() error {
 	c.emitByte(vm.OpPop) // pop condition in then branch
 
 	// then
-	if err := c.statement(); err != nil {
+	if err := c.consume(LeftBrace); err != nil {
+		return err
+	}
+	if err := c.block(); err != nil {
 		return err
 	}
 
@@ -519,7 +543,10 @@ func (c *Compiler) ifStatement() error {
 	c.emitByte(vm.OpPop) // pop condition in else branch
 
 	if c.match(Else) {
-		if err := c.statement(); err != nil {
+		if err := c.consume(LeftBrace); err != nil {
+			return err
+		}
+		if err := c.block(); err != nil {
 			return err
 		}
 	}

@@ -6,15 +6,15 @@ import (
 )
 
 type Function struct {
-	name  string
-	arity int
+	Name  string
+	Arity int
 	*PCode
 }
 
 func NewFunction(n string) *Function {
 	return &Function{
-		name:  n,
-		arity: 0,
+		Name:  n,
+		Arity: 0,
 		PCode: NewPCode(),
 	}
 }
@@ -22,7 +22,7 @@ func NewFunction(n string) *Function {
 func (f Function) String() string {
 	var builder strings.Builder
 
-	builder.WriteString(fmt.Sprintf("__%s__\n", f.name))
+	builder.WriteString(fmt.Sprintf("__%s__\n", f.Name))
 	builder.WriteString(f.PCode.String())
 
 	return builder.String()
