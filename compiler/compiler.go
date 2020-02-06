@@ -198,14 +198,30 @@ func (c *Compiler) binary(_ bool) error {
 }
 
 func (c *Compiler) call(_ bool) error {
-	if err := c.consume(RightParenthesis); err != nil {
+	count, err := c.arguments()
+	if err != nil {
 		return err
 	}
-	c.emitByte(vm.OpCall)
+	c.emitBytes(vm.OpCall, vm.OpCode(count))
 	if err := c.consume(NewLine, Semicolon, Eof); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (c *Compiler) arguments() (int, error) {
+	count := 0
+	for c.current.TokenType != RightParenthesis {
+		count++
+		if err := c.expression(false); err != nil {
+			return count, err
+		}
+		c.trim(Comma)
+	}
+	if err := c.consume(RightParenthesis); err != nil {
+		return count, err
+	}
+	return count, nil
 }
 
 func (c *Compiler) expression(_ bool) error {
@@ -310,7 +326,7 @@ func (c *Compiler) statement() error {
 	case Var, Let:
 		{
 			_ = c.advance()
-			if err := c.variable(); err != nil {
+			if err := c.variable(false); err != nil {
 				return err
 			}
 		}
@@ -385,7 +401,7 @@ func (c *Compiler) unary(_ bool) error {
 }
 
 // variable declaration parser
-func (c *Compiler) variable() error {
+func (c *Compiler) variable(isArgument bool) error {
 	modifiable := c.previous.TokenType == Var
 	identifier := c.current
 
@@ -406,8 +422,10 @@ func (c *Compiler) variable() error {
 			return err
 		}
 	} else {
-		v := vm.Value{ValueType: vm.Nil}
-		c.emitConstant(v)
+		if !isArgument {
+			v := vm.Value{ValueType: vm.Nil}
+			c.emitConstant(v)
+		}
 	}
 
 	if c.scope.depth > 0 {
@@ -482,10 +500,10 @@ func (c *Compiler) funStatement() error {
 	}
 
 	for c.current.TokenType != RightParenthesis {
-		fun.Arity++
+		c.Arity++
 		c.trim(Var)
 
-		if err := c.variable(); err != nil {
+		if err := c.variable(true); err != nil {
 			return err
 		}
 

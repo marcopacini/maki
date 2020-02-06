@@ -236,6 +236,13 @@ func (vm *VM) add() error {
 }
 
 func (vm *VM) call() error {
+	countArgs := int(vm.readByte())
+	args := make([]Value, countArgs)
+
+	for i := 0; i < countArgs; i++ {
+		args[i] = vm.pop()
+	}
+
 	v := vm.pop()
 
 	if v.ValueType != Object {
@@ -251,6 +258,9 @@ func (vm *VM) call() error {
 				Function: f,
 				rp:       vm.ip,
 				locals:   vm.sp,
+			}
+			for i := countArgs - 1; i >= 0; i-- {
+				vm.push(args[i])
 			}
 			vm.ip = 0
 		}

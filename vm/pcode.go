@@ -162,6 +162,11 @@ func (c PCode) String() string {
 
 		// Skip next code
 		switch c.Code[i] {
+		case OpCall:
+			{
+				i++
+				s.WriteString(fmt.Sprintf(" #%d", int(c.Code[i])))
+			}
 		case OpValue, OpDefineGlobal, OpGetGlobal, OpSetGlobal:
 			{
 				i++
