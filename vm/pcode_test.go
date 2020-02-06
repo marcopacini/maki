@@ -9,12 +9,12 @@ func makeValue(i interface{}) Value {
 	case bool:
 		{
 			value.ValueType = Bool
-			value.B = v
+			value.Boolean = v
 		}
 	case float64:
 		{
 			value.ValueType = Number
-			value.N = v
+			value.Float = v
 		}
 	}
 
