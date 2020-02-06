@@ -10,3 +10,16 @@ fun greet2() {
 }
 
 greet2() // expect: Hello, Maki!
+
+fun printArg(a, b, sum, product) {
+    print a
+    print b
+    print a + b
+    print a * b
+}
+
+printArg(3, 5, 8, 15)
+// expect: 3
+// expect: 5
+// expect: 8
+// expect: 15
