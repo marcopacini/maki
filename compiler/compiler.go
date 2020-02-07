@@ -343,8 +343,10 @@ func (c *Compiler) statement() error {
 				return err
 			}
 
-			if err := c.consume(Semicolon, NewLine, Eof); err != nil {
-				return err
+			if c.current.TokenType != RightBrace {
+				if err := c.consume(Semicolon, NewLine, Eof); err != nil {
+					return err
+				}
 			}
 
 			c.emitByte(vm.OpPop)
