@@ -23,3 +23,18 @@ printArg(3, 5, 8, 15)
 // expect: 5
 // expect: 8
 // expect: 15
+
+fun countdown(n) {
+    if n > 0 {
+        print n
+        countdown(n-1)
+    } else {
+        print "Bang!"
+    }
+}
+
+countdown(3)
+// expect: 3
+// expect: 2
+// expect: 1
+// expect: Bang!
