@@ -203,9 +203,6 @@ func (c *Compiler) call(_ bool) error {
 		return err
 	}
 	c.emitBytes(vm.OpCall, vm.OpCode(count))
-	if err := c.consume(NewLine, Semicolon, Eof); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -295,24 +292,10 @@ func (c *Compiler) statement() error {
 				return err
 			}
 		}
-	case LeftBrace:
-		{
-			_ = c.advance()
-			if err := c.block(); err != nil {
-				return err
-			}
-		}
 	case If:
 		{
 			_ = c.advance()
 			if err := c.ifStatement(); err != nil {
-				return err
-			}
-		}
-	case While:
-		{
-			_ = c.advance()
-			if err := c.whileStatement(); err != nil {
 				return err
 			}
 		}
@@ -323,6 +306,27 @@ func (c *Compiler) statement() error {
 				return err
 			}
 		}
+	case Fun:
+		{
+			_ = c.advance()
+			if err := c.funStatement(); err != nil {
+				return err
+			}
+		}
+	case LeftBrace:
+		{
+			_ = c.advance()
+			if err := c.block(); err != nil {
+				return err
+			}
+		}
+	case Return:
+		{
+			_ = c.advance()
+			if err := c.returnStatement(); err != nil {
+				return err
+			}
+		}
 	case Var, Let:
 		{
 			_ = c.advance()
@@ -330,10 +334,10 @@ func (c *Compiler) statement() error {
 				return err
 			}
 		}
-	case Fun:
+	case While:
 		{
 			_ = c.advance()
-			if err := c.funStatement(); err != nil {
+			if err := c.whileStatement(); err != nil {
 				return err
 			}
 		}
@@ -524,6 +528,7 @@ func (c *Compiler) funStatement() error {
 		return err
 	}
 	c.end(func() { c.emitByte(vm.OpPop) })
+	c.WriteConstant(vm.Value{ValueType: vm.Nil}, c.current.Line)
 	c.emitByte(vm.OpReturn)
 
 	v := vm.Value{
@@ -538,6 +543,15 @@ func (c *Compiler) funStatement() error {
 	c.WriteIdentifier(t.Lexeme, t.Line)
 	c.scope.addGlobal(t.Lexeme, false)
 
+	return nil
+}
+
+func (c *Compiler) returnStatement() error {
+	if err := c.expression(false); err != nil {
+		return err
+	}
+
+	c.emitByte(vm.OpReturn)
 	return nil
 }
 

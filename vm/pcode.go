@@ -90,8 +90,6 @@ func (op OpCode) String() string {
 		return "OP_MULTIPLY"
 	case OpNotEqual:
 		return "OP_NOT_EQUAL"
-	case OpReturn:
-		return "OP_RETURN"
 	case OpSetGlobal:
 		return "OP_SET_GLOBAL"
 	case OpSetLocal:
@@ -102,6 +100,8 @@ func (op OpCode) String() string {
 		return "OP_POP"
 	case OpPrint:
 		return "OP_PRINT"
+	case OpReturn:
+		return "OP_RETURN"
 	case OpTerminate:
 		return "OP_TERMINATE"
 	case OpValue:

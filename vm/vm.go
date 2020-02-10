@@ -270,9 +270,13 @@ func (vm *VM) call() error {
 }
 
 func (vm *VM) callReturn() {
-	vm.push(Value{}) // TODO: temporary value for prevent crash
+	returnValue := vm.pop()
+
+	vm.sp = vm.frames[vm.fp].locals
 	vm.ip = vm.frames[vm.fp].rp
 	vm.fp--
+
+	vm.push(returnValue)
 }
 
 func (vm *VM) constant() {
