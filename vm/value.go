@@ -42,6 +42,8 @@ func (v Value) String() string {
 				return value
 			case *Function:
 				return value.Name
+			case *Native:
+				return "<native fun>"
 			}
 		}
 	}

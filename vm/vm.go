@@ -26,11 +26,23 @@ type VM struct {
 }
 
 func NewVM() *VM {
-	return &VM{
+	vm := &VM{
 		ip:      0,
 		sp:      0,
 		fp:      0,
 		globals: make(map[string]Value, GlobalSize),
+	}
+
+	vm.defineNative("println", Println{})
+	vm.defineNative("clock", Clock{})
+
+	return vm
+}
+
+func (vm *VM) defineNative(name string, native Native) {
+	vm.globals[name] = Value{
+		ValueType: Object,
+		Ptr:       native,
 	}
 }
 
@@ -239,7 +251,7 @@ func (vm *VM) call() error {
 	countArgs := int(vm.readByte())
 	args := make([]Value, countArgs)
 
-	for i := 0; i < countArgs; i++ {
+	for i := countArgs - 1; i >= 0; i-- {
 		args[i] = vm.pop()
 	}
 
@@ -250,19 +262,29 @@ func (vm *VM) call() error {
 	}
 
 	if v.ValueType == Object {
-		if f, ok := v.Ptr.(*Function); !ok {
-			return fmt.Errorf("maki :: runtime error, %s is not callable [line %d]", v.String(), vm.getCurrentLine())
-		} else {
-			vm.fp++
-			vm.frames[vm.fp] = CallFrame{
-				Function: f,
-				rp:       vm.ip,
-				locals:   vm.sp,
+		switch f := v.Ptr.(type) {
+		case *Function:
+			{
+				vm.fp++
+				vm.frames[vm.fp] = CallFrame{
+					Function: f,
+					rp:       vm.ip,
+					locals:   vm.sp,
+				}
+				for i := 0; i < countArgs; i++ {
+					vm.push(args[i])
+				}
+				vm.ip = 0
 			}
-			for i := countArgs - 1; i >= 0; i-- {
-				vm.push(args[i])
+		case Native:
+			{
+				v := f.Function(args)
+				vm.push(v)
 			}
-			vm.ip = 0
+		default:
+			{
+				return fmt.Errorf("maki :: runtime error, %s is not callable [line %d]", v.String(), vm.getCurrentLine())
+			}
 		}
 	}
 
