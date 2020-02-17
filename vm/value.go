@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"fmt"
 	"strconv"
 )
 
@@ -47,5 +48,5 @@ func (v Value) String() string {
 			}
 		}
 	}
-	return "UNKNOWN"
+	return fmt.Sprintf("UnknownValue :: ValueType=%d", v.ValueType)
 }

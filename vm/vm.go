@@ -5,31 +5,34 @@ import (
 )
 
 const (
-	FrameSize  = 64
-	GlobalSize = 64
-	StackSize  = 256
+	FrameSize  = 128
+	GlobalSize = 1024
+	StackSize  = 4096
 )
 
-type CallFrame struct {
+type Frame struct {
 	*Function
 	rp     int
 	locals int
 }
 
+func newFrame(fun *Function) Frame {
+	return Frame{
+		Function: fun,
+	}
+}
+
 type VM struct {
-	ip      int
-	sp      int
+	ip      int // instruction pointer
+	sp      int // stack pointer
+	fp      int // frame pointer
 	stack   [StackSize]Value
-	fp      int
-	frames  [FrameSize]CallFrame
+	frames  [FrameSize]Frame
 	globals map[string]Value
 }
 
 func NewVM() *VM {
 	vm := &VM{
-		ip:      0,
-		sp:      0,
-		fp:      0,
 		globals: make(map[string]Value, GlobalSize),
 	}
 
@@ -37,6 +40,12 @@ func NewVM() *VM {
 	vm.defineNative("clock", Clock{})
 
 	return vm
+}
+
+func (vm *VM) initPointers() {
+	vm.ip = 0
+	vm.sp = 0
+	vm.fp = 0
 }
 
 func (vm *VM) defineNative(name string, native Native) {
@@ -60,26 +69,36 @@ func (vm *VM) pop() Value {
 	return vm.stack[vm.sp]
 }
 
+func (vm *VM) peekFrame() Frame {
+	return vm.frames[vm.fp-1]
+}
+
+func (vm *VM) pushFrame(frame Frame) {
+	vm.frames[vm.fp] = frame
+	vm.fp++
+}
+
+func (vm *VM) popFrame() {
+	vm.sp = vm.peekFrame().locals
+	vm.ip = vm.peekFrame().rp
+	vm.fp--
+}
+
 func (vm *VM) peekByte() OpCode {
-	return vm.frames[vm.fp].Code[vm.ip]
+	return vm.peekFrame().Code[vm.ip]
 }
 
 func (vm *VM) readByte() OpCode {
 	vm.ip++
-	return vm.frames[vm.fp].Code[vm.ip-1]
+	return vm.peekFrame().Code[vm.ip-1]
 }
 
 func (vm *VM) Run(fun *Function) error {
-	vm.ip = 0
-	vm.sp = 0
-	vm.fp = 0
-
-	vm.frames[vm.sp] = CallFrame{
-		Function: fun,
-	}
+	vm.initPointers()
+	vm.pushFrame(newFrame(fun))
 
 	for {
-		switch vm.readByte() {
+		switch op := vm.readByte(); op {
 		case OpAdd:
 			{
 				if err := vm.add(); err != nil {
@@ -104,9 +123,9 @@ func (vm *VM) Run(fun *Function) error {
 			{
 				vm.divide()
 			}
-		case OpEqualEqual:
+		case OpEqualEqual, OpNotEqual:
 			{
-				if err := vm.equalEqual(); err != nil {
+				if err := vm.equality(op); err != nil {
 					return err
 				}
 			}
@@ -120,15 +139,9 @@ func (vm *VM) Run(fun *Function) error {
 			{
 				vm.getLocal()
 			}
-		case OpGreater:
+		case OpGreater, OpGreaterEqual, OpLess, OpLessEqual:
 			{
-				if err := vm.greater(); err != nil {
-					return err
-				}
-			}
-		case OpGreaterEqual:
-			{
-				if err := vm.greaterEqual(); err != nil {
+				if err := vm.comparison(op); err != nil {
 					return err
 				}
 			}
@@ -140,21 +153,9 @@ func (vm *VM) Run(fun *Function) error {
 			{
 				vm.jumpIfFalse()
 			}
-		case OpLess:
-			{
-				if err := vm.less(); err != nil {
-					return err
-				}
-			}
 		case OpLoop:
 			{
 				vm.loop()
-			}
-		case OpLessEqual:
-			{
-				if err := vm.lessEqual(); err != nil {
-					return err
-				}
 			}
 		case OpNil:
 			{
@@ -163,12 +164,6 @@ func (vm *VM) Run(fun *Function) error {
 		case OpNot:
 			{
 				vm.not()
-			}
-		case OpNotEqual:
-			{
-				if err := vm.notEqual(); err != nil {
-					return err
-				}
 			}
 		case OpMinus:
 			{
@@ -250,11 +245,9 @@ func (vm *VM) add() error {
 func (vm *VM) call() error {
 	countArgs := int(vm.readByte())
 	args := make([]Value, countArgs)
-
 	for i := countArgs - 1; i >= 0; i-- {
 		args[i] = vm.pop()
 	}
-
 	v := vm.pop()
 
 	if v.ValueType != Object {
@@ -265,12 +258,11 @@ func (vm *VM) call() error {
 		switch f := v.Ptr.(type) {
 		case *Function:
 			{
-				vm.fp++
-				vm.frames[vm.fp] = CallFrame{
+				vm.pushFrame(Frame{
 					Function: f,
 					rp:       vm.ip,
 					locals:   vm.sp,
-				}
+				})
 				for i := 0; i < countArgs; i++ {
 					vm.push(args[i])
 				}
@@ -293,22 +285,18 @@ func (vm *VM) call() error {
 
 func (vm *VM) callReturn() {
 	returnValue := vm.pop()
-
-	vm.sp = vm.frames[vm.fp].locals
-	vm.ip = vm.frames[vm.fp].rp
-	vm.fp--
-
+	vm.popFrame()
 	vm.push(returnValue)
 }
 
 func (vm *VM) constant() {
 	addr := int(vm.readByte())
-	vm.push(vm.frames[vm.fp].Constants.At(addr))
+	vm.push(vm.peekFrame().Constants.At(addr))
 }
 
 func (vm *VM) defineGlobal() {
 	addr := int(vm.readByte())
-	identifier, _ := vm.frames[vm.fp].Constants.At(addr).Ptr.(string)
+	identifier, _ := vm.peekFrame().Constants.At(addr).Ptr.(string)
 	vm.globals[identifier] = vm.pop()
 }
 
@@ -318,7 +306,7 @@ func (vm *VM) divide() {
 	vm.push(v)
 }
 
-func (vm *VM) equalEqual() error {
+func (vm *VM) equality(op OpCode) error {
 	rhs, lhs := vm.getOperands()
 
 	err := fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
@@ -327,7 +315,9 @@ func (vm *VM) equalEqual() error {
 
 	if lhs.ValueType != rhs.ValueType {
 		if lhs.ValueType == Nil || rhs.ValueType == Nil {
-			v.Boolean = false
+			if op == OpEqualEqual {
+				v.Boolean = false
+			}
 			vm.push(v)
 			return nil
 		} else {
@@ -356,13 +346,17 @@ func (vm *VM) equalEqual() error {
 		}
 	}
 
+	if op == OpNotEqual {
+		v.Boolean = !v.Boolean
+	}
+
 	vm.push(v)
 	return nil
 }
 
 func (vm *VM) getGlobal() error {
 	addr := int(vm.readByte())
-	identifier, _ := vm.frames[vm.fp].Constants.At(addr).Ptr.(string)
+	identifier, _ := vm.peekFrame().Constants.At(addr).Ptr.(string)
 
 	v, ok := vm.globals[identifier]
 	if !ok {
@@ -375,7 +369,7 @@ func (vm *VM) getGlobal() error {
 
 func (vm *VM) getLocal() {
 	addr := int(vm.readByte())
-	v := vm.stack[vm.frames[vm.fp].locals+addr]
+	v := vm.stack[vm.peekFrame().locals+addr]
 	vm.push(v)
 }
 
@@ -402,7 +396,7 @@ func (vm *VM) loop() {
 
 func (vm *VM) setGlobal() error {
 	addr := int(vm.readByte())
-	identifier, _ := vm.frames[vm.fp].Constants.At(addr).Ptr.(string)
+	identifier, _ := vm.peekFrame().Constants.At(addr).Ptr.(string)
 
 	if _, ok := vm.globals[identifier]; !ok {
 		return fmt.Errorf("maki :: runtime error, variable '%s' not defined [line %d]", identifier, vm.getCurrentLine())
@@ -417,97 +411,26 @@ func (vm *VM) setLocal() {
 	vm.stack[addr] = vm.pop()
 }
 
-func (vm *VM) notEqual() error {
-	rhs, lhs := vm.getOperands()
-
-	err := fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
-
-	v := Value{ValueType: Bool, Boolean: false}
-
-	if lhs.ValueType != rhs.ValueType {
-		if lhs.ValueType == Nil || rhs.ValueType == Nil {
-			v.Boolean = true
-			vm.push(v)
-			return nil
-		} else {
-			return err
-		}
-	}
-
-	switch lhs.ValueType {
-	case Bool:
-		v.Boolean = lhs.Boolean != rhs.Boolean
-	case Number:
-		v.Boolean = lhs.Float != rhs.Float
-	case Object:
-		{
-			ls, ok := lhs.Ptr.(string)
-			if !ok {
-				return err
-			}
-
-			rs, ok := rhs.Ptr.(string)
-			if !ok {
-				return err
-			}
-
-			v.Boolean = ls != rs
-		}
-	}
-
-	vm.push(v)
-	return nil
-}
-
-func (vm *VM) greater() error {
+func (vm *VM) comparison(op OpCode) error {
 	rhs, lhs := vm.getOperands()
 
 	if lhs.ValueType != Number || rhs.ValueType != Number {
 		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
 	}
 
-	v := Value{ValueType: Bool, Boolean: lhs.Float > rhs.Float}
-	vm.push(v)
-
-	return nil
-}
-
-func (vm *VM) greaterEqual() error {
-	rhs, lhs := vm.getOperands()
-
-	if lhs.ValueType != Number || rhs.ValueType != Number {
-		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
+	v := Value{ValueType: Bool}
+	switch op {
+	case OpGreater:
+		v.Boolean = lhs.Float > rhs.Float
+	case OpGreaterEqual:
+		v.Boolean = lhs.Float >= rhs.Float
+	case OpLess:
+		v.Boolean = lhs.Float < rhs.Float
+	case OpLessEqual:
+		v.Boolean = lhs.Float <= rhs.Float
 	}
 
-	v := Value{ValueType: Bool, Boolean: lhs.Float >= rhs.Float}
 	vm.push(v)
-
-	return nil
-}
-
-func (vm *VM) less() error {
-	rhs, lhs := vm.getOperands()
-
-	if lhs.ValueType != Number || rhs.ValueType != Number {
-		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
-	}
-
-	v := Value{ValueType: Bool, Boolean: lhs.Float < rhs.Float}
-	vm.push(v)
-
-	return nil
-}
-
-func (vm *VM) lessEqual() error {
-	rhs, lhs := vm.getOperands()
-
-	if lhs.ValueType != Number || rhs.ValueType != Number {
-		return fmt.Errorf("maki :: runtime error, invalid binary operands [line %d]", vm.getCurrentLine())
-	}
-
-	v := Value{ValueType: Bool, Boolean: lhs.Float <= rhs.Float}
-	vm.push(v)
-
 	return nil
 }
 
@@ -564,7 +487,7 @@ func (vm *VM) getOperands() (Value, Value) {
 }
 
 func (vm *VM) getCurrentLine() int {
-	line, err := vm.frames[vm.fp].Lines.At(vm.ip)
+	line, err := vm.peekFrame().Lines.At(vm.ip)
 	if err != nil {
 		panic(err.Error())
 	}
