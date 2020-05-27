@@ -4,16 +4,26 @@ maki-lang or just Maki is a programming language built for **fun** completely wr
 production ready and ~~probably~~ will never be.
 
 ```
-io.println("Hello, World!")
+fun hello(name) {
+  print "Meowww, " + name +  "!"
+}
+hello("World") // print Meowww, World!
 ```
 Maki ~~was written~~ is being written keeping in mind that is should be easy to read. So the implementation choices
 are very affected by KISS principle.
 
 ## Run
-###### REPL
+###### Build
 ```
 go build
+```
+###### REPL
+```
 ./maki
+```
+###### File
+```
+./maki program.maki
 ```
 
 ## To Do
