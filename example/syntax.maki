@@ -14,14 +14,14 @@ var {
 class Cat
 {
     var Name { get, set }
-    var Age
+    var Breed
 }
 
 // Constructor definition
-fun Cat.New(name, age)
+fun Cat.new(name, breed)
 {
     self.Name = name
-    self.Age = age
+    self.Breed = breed
 }
 
 // Method definition
@@ -59,6 +59,6 @@ let {
 
 // Array
 var seq = [ 1 2 3 ]
-for i = 0; i < seq.length; i++ {
+for var i = 0; i < seq.length; i++ {
     io.println(seq[i])
 }
