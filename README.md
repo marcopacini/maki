@@ -9,11 +9,19 @@ io.println("Hello, World!")
 Maki ~~was written~~ is being written keeping in mind that is should be easy to read. So the implementation choices
 are very affected by KISS principle.
 
+## Run
+###### REPL
+```
+go build
+./maki
+```
+
 ## To Do
 
 - Array (builtin data structure)
 - Closure
 - Class
+- Module
 
 #### Nice to have
 
