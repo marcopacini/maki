@@ -2,11 +2,11 @@
 
 The _compiler_ package contains the source code used to compile Maki source code to _pcode_.
 
-## `scanner.go`
-TBD
+## Scanner
+_TBD_
 
-## `compiler.go`
-TBD
+## Compiler
+_TBD_
 
-## `scope.go`
-TBD
+## Scope
+_TBD_
