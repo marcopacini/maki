@@ -41,7 +41,7 @@ type rule struct {
 }
 
 func getRule(tt TokenType) rule {
-	var rules = map[TokenType]rule{
+	rules := map[TokenType]rule{
 		And:             {prefix: nil, infix: (*Compiler).and, precedence: PrecAnd},
 		Equal:           {prefix: nil, infix: nil, precedence: PrecNone},
 		EqualEqual:      {prefix: nil, infix: (*Compiler).binary, precedence: PrecEquality},
@@ -50,6 +50,7 @@ func getRule(tt TokenType) rule {
 		GreaterEqual:    {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
 		Identifier:      {prefix: (*Compiler).identifier, infix: nil, precedence: PrecNone},
 		LeftParenthesis: {prefix: (*Compiler).grouping, infix: (*Compiler).call, precedence: PrecCall},
+		LeftSquare:      {prefix: (*Compiler).array, infix: nil, precedence: PrecNone},
 		Less:            {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
 		LessEqual:       {prefix: nil, infix: (*Compiler).binary, precedence: PrecComparison},
 		Minus:           {prefix: (*Compiler).unary, infix: (*Compiler).binary, precedence: PrecTerm},
@@ -207,15 +208,25 @@ func (c *Compiler) call(_ bool) error {
 }
 
 func (c *Compiler) arguments() (int, error) {
+	var t TokenType
+	switch c.previous.TokenType {
+	case LeftParenthesis:
+		t = RightParenthesis
+	case LeftSquare:
+		t = RightSquare
+	default:
+		return 0, fmt.Errorf("compiler error, unpexcted parenthesis: %s", c.current.Lexeme)
+	}
+
 	count := 0
-	for c.current.TokenType != RightParenthesis {
+	for c.current.TokenType != t {
 		count++
 		if err := c.expression(false); err != nil {
 			return count, err
 		}
 		c.trim(Comma)
 	}
-	if err := c.consume(RightParenthesis); err != nil {
+	if err := c.consume(t); err != nil {
 		return count, err
 	}
 	return count, nil
@@ -272,6 +283,15 @@ func (c *Compiler) number(_ bool) error {
 
 	v := vm.Value{ValueType: vm.Number, Float: n}
 	c.emitConstant(v)
+	return nil
+}
+
+func (c *Compiler) array(_ bool) error {
+	count, err := c.arguments()
+	if err != nil {
+		return err
+	}
+	c.emitBytes(vm.OpArray, vm.OpCode(count))
 	return nil
 }
 
@@ -358,11 +378,7 @@ func (c *Compiler) statement() error {
 		}
 	}
 
-	if c.current.TokenType != RightBrace && c.current.TokenType != Eof { // check if it's last statement in block
-		if err := c.consume(Semicolon, NewLine); err != nil {
-			return err
-		}
-	}
+	c.trim(Semicolon, NewLine)
 	return nil
 }
 
@@ -450,22 +466,58 @@ func (c *Compiler) variable(isArgument bool) error {
 	return nil
 }
 
+func (c *Compiler) indexing() error {
+	if c.match(Number) {
+		n, err := strconv.ParseInt(c.previous.Lexeme, 10, 64)
+		if err != nil {
+			return err
+		}
+		if n < 0 {
+			return fmt.Errorf("compile error, index cannot be negative: %d", n)
+		}
+		if err := c.consume(RightSquare); err != nil {
+			return err
+		}
+		v := vm.Value{ValueType: vm.Number, Float: float64(n)}
+		c.emitConstant(v)
+		return nil
+	}
+	if err := c.expression(false); err != nil {
+		return err
+	}
+	return c.consume(RightSquare)
+}
+
 // identifier parser
 func (c *Compiler) identifier(assignable bool) error {
 	identifier := c.previous.Lexeme
+	isLocal, addr, modifiable := c.resolveVar(identifier)
+	isIndexed := c.match(LeftSquare)
 
 	var getOp, setOp vm.OpCode
-
-	isLocal, addr, modifiable := c.resolveVar(identifier)
-
 	if isLocal {
-		getOp = vm.OpGetLocal
-		setOp = vm.OpSetLocal
+		if isIndexed {
+			getOp = vm.OpGetLocalIndex
+			setOp = vm.OpSetLocalIndex
+		} else {
+			getOp = vm.OpGetLocal
+			setOp = vm.OpSetLocal
+		}
 	} else {
-		getOp = vm.OpGetGlobal
-		setOp = vm.OpSetGlobal
+		if isIndexed {
+			getOp = vm.OpGetGlobalIndex
+			setOp = vm.OpSetGlobalIndex
+		} else {
+			getOp = vm.OpGetGlobal
+			setOp = vm.OpSetGlobal
+		}
 	}
 
+	if isIndexed {
+		if err := c.indexing(); err != nil {
+			return err
+		}
+	}
 	if c.match(Equal) && assignable {
 		if !modifiable {
 			return fmt.Errorf("compile error, cannot assign expression to constant '%s' [line %d]", identifier, c.current.Line)
@@ -475,12 +527,12 @@ func (c *Compiler) identifier(assignable bool) error {
 		if err := c.expression(false); err != nil {
 			return err
 		}
-		c.emitByte(setOp)
+
+		c.emitBytes(setOp)
 	} else {
 		// reading identifier
-		c.emitByte(getOp)
+		c.emitBytes(getOp)
 	}
-
 	if isLocal {
 		c.Write(vm.OpCode(addr), c.current.Line)
 	} else {

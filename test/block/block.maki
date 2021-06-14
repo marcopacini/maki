@@ -1,4 +1,4 @@
-{ var x; print x } // expect: Nil
+{ var x; print x } // expect: nil
 
 var x = 10
 print x // expect: 10

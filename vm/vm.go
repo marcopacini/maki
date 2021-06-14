@@ -94,6 +94,13 @@ func (vm *VM) readByte() OpCode {
 }
 
 func (vm *VM) Run(fun *Function) error {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Printf("maki :: panic at ip %04d\n\n", vm.ip)
+			panic(err)
+		}
+	}()
+
 	vm.initPointers()
 	vm.pushFrame(newFrame(fun))
 
@@ -104,6 +111,10 @@ func (vm *VM) Run(fun *Function) error {
 				if err := vm.add(); err != nil {
 					return err
 				}
+			}
+		case OpArray:
+			{
+				vm.array()
 			}
 		case OpCall:
 			{
@@ -131,13 +142,27 @@ func (vm *VM) Run(fun *Function) error {
 			}
 		case OpGetGlobal:
 			{
-				if err := vm.getGlobal(); err != nil {
+				if err := vm.getGlobal(false); err != nil {
+					return err
+				}
+			}
+		case OpGetGlobalIndex:
+			{
+				if err := vm.getGlobal(true); err != nil {
 					return err
 				}
 			}
 		case OpGetLocal:
 			{
-				vm.getLocal()
+				if err := vm.getLocal(false); err != nil {
+					return err
+				}
+			}
+		case OpGetLocalIndex:
+			{
+				if err := vm.getLocal(true); err != nil {
+					return err
+				}
 			}
 		case OpGreater, OpGreaterEqual, OpLess, OpLessEqual:
 			{
@@ -189,13 +214,27 @@ func (vm *VM) Run(fun *Function) error {
 			}
 		case OpSetGlobal:
 			{
-				if err := vm.setGlobal(); err != nil {
+				if err := vm.setGlobal(false); err != nil {
+					return err
+				}
+			}
+		case OpSetGlobalIndex:
+			{
+				if err := vm.setGlobal(true); err != nil {
 					return err
 				}
 			}
 		case OpSetLocal:
 			{
-				vm.setLocal()
+				if err := vm.setLocal(false); err != nil {
+					return err
+				}
+			}
+		case OpSetLocalIndex:
+			{
+				if err := vm.setLocal(true); err != nil {
+					return err
+				}
 			}
 		case OpSubtract:
 			{
@@ -243,9 +282,9 @@ func (vm *VM) add() error {
 }
 
 func (vm *VM) call() error {
-	countArgs := int(vm.readByte())
-	args := make([]Value, countArgs)
-	for i := countArgs - 1; i >= 0; i-- {
+	count := int(vm.readByte())
+	args := make([]Value, count)
+	for i := count - 1; i >= 0; i-- {
 		args[i] = vm.pop()
 	}
 	v := vm.pop()
@@ -263,7 +302,7 @@ func (vm *VM) call() error {
 					rp:       vm.ip,
 					locals:   vm.sp,
 				})
-				for i := 0; i < countArgs; i++ {
+				for i := 0; i < count; i++ {
 					vm.push(args[i])
 				}
 				vm.ip = 0
@@ -290,13 +329,13 @@ func (vm *VM) callReturn() {
 }
 
 func (vm *VM) constant() {
-	addr := int(vm.readByte())
-	vm.push(vm.peekFrame().Constants.At(addr))
+	address := int(vm.readByte())
+	vm.push(vm.peekFrame().Constants.At(address))
 }
 
 func (vm *VM) defineGlobal() {
-	addr := int(vm.readByte())
-	identifier, _ := vm.peekFrame().Constants.At(addr).Ptr.(string)
+	address := int(vm.readByte())
+	identifier, _ := vm.peekFrame().Constants.At(address).Ptr.(string)
 	vm.globals[identifier] = vm.pop()
 }
 
@@ -354,23 +393,71 @@ func (vm *VM) equality(op OpCode) error {
 	return nil
 }
 
-func (vm *VM) getGlobal() error {
-	addr := int(vm.readByte())
-	identifier, _ := vm.peekFrame().Constants.At(addr).Ptr.(string)
+func (vm *VM) getIndex() (int, error) {
+	v := vm.pop()
+	if v.ValueType != Number {
+		return 0, fmt.Errorf("maki :: runtime error, invalid type for indexing: %v", v.ValueType)
+	}
+	return int(v.Float), nil
+}
 
-	v, ok := vm.globals[identifier]
+func (vm *VM) getGlobal(isIndexed bool) error {
+	address := int(vm.readByte())
+	identifier, _ := vm.peekFrame().Constants.At(address).Ptr.(string)
+
+	variable, ok := vm.globals[identifier]
 	if !ok {
 		return fmt.Errorf("maki :: runtime error, variable '%s' not defined [line %d]", identifier, vm.getCurrentLine())
 	}
 
-	vm.push(v)
+	if variable.ValueType == Array {
+		if isIndexed {
+			index, err := vm.getIndex()
+			if err != nil {
+				return err
+			}
+			array, ok := variable.Ptr.([]Value)
+			if !ok {
+				return fmt.Errorf("maki :: runtime error, variable '%s' is not a valid array", identifier)
+			}
+			if index >= len(array) {
+				return fmt.Errorf("maki :: runtume error, index out of range with length %d: %s[%d]", len(array), identifier, index)
+			}
+			variable = array[index]
+		} else {
+			variable = Value{ValueType: Reference, Ptr: variable}
+		}
+	}
+
+	vm.push(variable)
 	return nil
 }
 
-func (vm *VM) getLocal() {
-	addr := int(vm.readByte())
-	v := vm.stack[vm.peekFrame().locals+addr]
-	vm.push(v)
+func (vm *VM) getLocal(isIndexed bool) error {
+	address := int(vm.readByte())
+	variable := vm.stack[vm.peekFrame().locals+address]
+
+	if variable.ValueType == Array {
+		if isIndexed {
+			index, err := vm.getIndex()
+			if err != nil {
+				return err
+			}
+			array, ok := variable.Ptr.([]Value)
+			if !ok {
+				return fmt.Errorf("maki :: runtime error, invalid array")
+			}
+			if index >= len(array) {
+				return fmt.Errorf("maki :: runtume error, index out of range with length %d: [%d]", len(array), index)
+			}
+			variable = array[index]
+		} else {
+			variable = Value{ValueType: Reference, Ptr: variable}
+		}
+	}
+
+	vm.push(variable)
+	return nil
 }
 
 func (vm *VM) jump() {
@@ -394,21 +481,67 @@ func (vm *VM) loop() {
 	vm.ip -= jump + 2
 }
 
-func (vm *VM) setGlobal() error {
-	addr := int(vm.readByte())
-	identifier, _ := vm.peekFrame().Constants.At(addr).Ptr.(string)
+func (vm *VM) array() {
+	count := int(vm.readByte())
+	values := make([]Value, count)
+	for i := count - 1; i >= 0; i-- {
+		values[i] = vm.pop()
+	}
+	vm.push(Value{ValueType: Array, Ptr: values})
+}
+
+func (vm *VM) setGlobal(isIndexed bool) error {
+	value := vm.pop()
+	address := int(vm.readByte())
+	identifier, _ := vm.peekFrame().Constants.At(address).Ptr.(string)
 
 	if _, ok := vm.globals[identifier]; !ok {
 		return fmt.Errorf("maki :: runtime error, variable '%s' not defined [line %d]", identifier, vm.getCurrentLine())
 	}
+	variable := vm.globals[identifier]
 
-	vm.globals[identifier] = *vm.top()
+	if isIndexed && variable.ValueType == Array {
+		index, err := vm.getIndex()
+		if err != nil {
+			return err
+		}
+		array, ok := variable.Ptr.([]Value)
+		if !ok {
+			return fmt.Errorf("maki :: runtime error, variable '%s' is not a valid array")
+		}
+		if index >= len(array) {
+			return fmt.Errorf("maki :: runtume error, index out of range with length %d: %s[%d]", len(array), identifier, index)
+		}
+		array[index] = value
+	} else {
+		vm.globals[identifier] = value
+	}
+	vm.push(value)
 	return nil
 }
 
-func (vm *VM) setLocal() {
-	addr := int(vm.readByte())
-	vm.stack[addr] = vm.pop()
+func (vm *VM) setLocal(isIndexed bool) error {
+	value := vm.pop()
+	address := int(vm.readByte())
+	variable := vm.stack[address]
+
+	if isIndexed && value.ValueType == Array {
+		index, err := vm.getIndex()
+		if err != nil {
+			return err
+		}
+		array, ok := variable.Ptr.([]Value)
+		if !ok {
+			return fmt.Errorf("maki :: runtime error, invalid array")
+		}
+		if index >= len(array) {
+			return fmt.Errorf("maki :: runtume error, index out of range with length %d: [%d]", len(array), index)
+		}
+		array[index] = value
+	} else {
+		vm.stack[address] = value
+	}
+	return nil
 }
 
 func (vm *VM) comparison(op OpCode) error {

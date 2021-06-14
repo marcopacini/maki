@@ -8,10 +8,12 @@ import (
 type ValueType uint8
 
 const (
-	Bool ValueType = iota
+	Array ValueType = iota
+	Bool
 	Nil
 	Number
 	Object
+	Reference
 )
 
 type Value struct {
@@ -30,10 +32,22 @@ func (v Value) BoolValue() bool {
 
 func (v Value) String() string {
 	switch v.ValueType {
+	case Array:
+		{
+			values, ok := v.Ptr.([]Value)
+			if !ok {
+				return fmt.Sprintf("Invalid array content :: Value: %v", v.Ptr)
+			}
+			s := values[0].String()
+			for _, v := range values[1:] {
+				s += ", " + v.String()
+			}
+			return "[ " + s + " ]"
+		}
 	case Bool:
 		return strconv.FormatBool(v.Boolean)
 	case Nil:
-		return "Nil"
+		return "nil"
 	case Number:
 		return strconv.FormatFloat(v.Float, 'f', 0, 64)
 	case Object:
@@ -46,6 +60,11 @@ func (v Value) String() string {
 			case *Native:
 				return "<native fun>"
 			}
+		}
+	case Reference:
+		{
+			v, _ := v.Ptr.(Value)
+			return v.String()
 		}
 	}
 	return fmt.Sprintf("UnknownValue :: ValueType=%d", v.ValueType)

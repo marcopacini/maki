@@ -28,12 +28,15 @@ type OpCode uint8
 
 const (
 	OpAdd OpCode = iota
+	OpArray
 	OpDefineGlobal
 	OpDivide
 	OpCall
 	OpEqualEqual
 	OpGetGlobal
+	OpGetGlobalIndex
 	OpGetLocal
+	OpGetLocalIndex
 	OpGreater
 	OpGreaterEqual
 	OpJump
@@ -50,7 +53,9 @@ const (
 	OpPrint
 	OpReturn
 	OpSetGlobal
+	OpSetGlobalIndex
 	OpSetLocal
+	OpSetLocalIndex
 	OpSubtract
 	OpTerminate
 	OpValue
@@ -68,8 +73,12 @@ func (op OpCode) String() string {
 		return "OP_EQUAL_EQUAL"
 	case OpGetGlobal:
 		return "OP_GET_GLOBAL"
+	case OpGetGlobalIndex:
+		return "OP_GET_GLOBAL_INDEX"
 	case OpGetLocal:
 		return "OP_GET_LOCAL"
+	case OpGetLocalIndex:
+		return "OP_GET_LOCAL_INDEX"
 	case OpGreater:
 		return "OP_GREATER"
 	case OpGreaterEqual:
@@ -90,10 +99,16 @@ func (op OpCode) String() string {
 		return "OP_MULTIPLY"
 	case OpNotEqual:
 		return "OP_NOT_EQUAL"
+	case OpArray:
+		return "OP_ARRAY"
 	case OpSetGlobal:
 		return "OP_SET_GLOBAL"
+	case OpSetGlobalIndex:
+		return "OP_SET_GLOBAL_INDEX"
 	case OpSetLocal:
 		return "OP_SET_LOCAL"
+	case OpSetLocalIndex:
+		return "OP_SET_LOCAL_INDEX"
 	case OpSubtract:
 		return "OP_SUBTRACT"
 	case OpPop:
@@ -113,14 +128,15 @@ func (op OpCode) String() string {
 
 type PCode struct {
 	Code      []OpCode
-	Constants array
+	Constants *array
 	Lines     *RLE
 }
 
 func NewPCode() *PCode {
 	return &PCode{
-		Code:  make([]OpCode, 0, 8),
-		Lines: NewRLE(),
+		Code:      make([]OpCode, 0, 8),
+		Constants: newArray(),
+		Lines:     NewRLE(),
 	}
 }
 
@@ -162,12 +178,12 @@ func (c PCode) String() string {
 
 		// Skip next code
 		switch c.Code[i] {
-		case OpCall:
+		case OpCall, OpArray:
 			{
 				i++
 				s.WriteString(fmt.Sprintf(" #%d", int(c.Code[i])))
 			}
-		case OpValue, OpDefineGlobal, OpGetGlobal, OpSetGlobal:
+		case OpValue, OpDefineGlobal:
 			{
 				i++
 				v := c.Constants.At(int(c.Code[i]))
@@ -185,6 +201,12 @@ func (c PCode) String() string {
 						s.WriteString(fmt.Sprintf(" '%s'", v))
 					}
 				}
+			}
+		case OpGetGlobal, OpSetGlobal, OpGetGlobalIndex, OpSetGlobalIndex:
+			{
+				i++
+				v := c.Constants.At(int(c.Code[i]))
+				s.WriteString(fmt.Sprintf(" '%s'", v))
 			}
 		case OpGetLocal, OpSetLocal:
 			{

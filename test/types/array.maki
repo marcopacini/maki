@@ -1,0 +1,17 @@
+let x = 1
+var a = [ x, "two", nil ]
+print a // expect: [ 1, two, nil ]
+print a[0] // expect: 1
+print a[1] // expect: two
+print a[2] // expect: nil
+
+for var i = 0; i < 3; i = i + 1 {
+  a[i] = (i + 1) * 2
+}
+print a // expect: [ 2, 4, 6 ]
+
+fun index() {
+  return 1
+}
+a[index()] = 42
+print a[1] // expect 42

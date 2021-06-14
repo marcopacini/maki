@@ -1,17 +1,21 @@
 var b = true
 var n = 10
 var s = "Hello, World!"
+var a = [ 1, 2, "three", 4 ]
 
 print b // expect: true
 print n // expect: 10
 print s // expect: Hello, World!
+print a // expect: [ 1, 2, three, 4 ]
 
 {
     b = false
     n = 42
     s = "Hello, Maki!"
+    a = [ 1, 2, nil ]
 }
 
 print b // expect: false
 print n // expect: 42
 print s // expect: Hello, Maki!
+print a // expect: [ 1, 2, nil ]

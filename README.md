@@ -28,7 +28,9 @@ go build
 
 ## To Do
 
-- Array (builtin data structure)
+- `assert` statement
+- `[var|let] { ... }` syntax
+- foreach syntax
 - Closure
 - Class
 - Module
