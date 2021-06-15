@@ -35,6 +35,7 @@ const (
 	Or                         = "OR"
 	Plus                       = "PLUS"
 	Print                      = "PRINT"
+	Assert                     = "ASSERT"
 	Return                     = "RETURN"
 	RightBrace                 = "RIGHT_BRACE"
 	RightParenthesis           = "RIGHT_PARENTHESIS"
@@ -52,6 +53,7 @@ const (
 
 var keywords = map[string]TokenType{
 	"and":    And,
+	"assert": Assert,
 	"class":  Class,
 	"else":   Else,
 	"false":  False,

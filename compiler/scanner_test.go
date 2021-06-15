@@ -76,6 +76,11 @@ func TestScanner_Scan(t *testing.T) {
 			in:   "print x",
 			out:  []TokenType{Print, Identifier, Eof},
 		},
+		{
+			name: "Assert",
+			in:   "assert false",
+			out:  []TokenType{Assert, False, Eof},
+		},
 	}
 
 	for _, tc := range tcs {

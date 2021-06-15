@@ -29,6 +29,7 @@ type OpCode uint8
 const (
 	OpAdd OpCode = iota
 	OpArray
+	OpAssert
 	OpDefineGlobal
 	OpDivide
 	OpCall

@@ -295,6 +295,14 @@ func (c *Compiler) array(_ bool) error {
 	return nil
 }
 
+func (c *Compiler) assert() error {
+	if err := c.expression(false); err != nil {
+		return err
+	}
+	c.emitByte(vm.OpAssert)
+	return nil
+}
+
 func (c *Compiler) print() error {
 	if err := c.expression(false); err != nil {
 		return err
@@ -305,17 +313,10 @@ func (c *Compiler) print() error {
 
 func (c *Compiler) statement() error {
 	switch c.current.TokenType {
-	case Print:
+	case Assert:
 		{
 			_ = c.advance()
-			if err := c.print(); err != nil {
-				return err
-			}
-		}
-	case If:
-		{
-			_ = c.advance()
-			if err := c.ifStatement(); err != nil {
+			if err := c.assert(); err != nil {
 				return err
 			}
 		}
@@ -333,10 +334,25 @@ func (c *Compiler) statement() error {
 				return err
 			}
 		}
+	case If:
+		{
+			_ = c.advance()
+			if err := c.ifStatement(); err != nil {
+				return err
+			}
+		}
+
 	case LeftBrace:
 		{
 			_ = c.advance()
 			if err := c.block(); err != nil {
+				return err
+			}
+		}
+	case Print:
+		{
+			_ = c.advance()
+			if err := c.print(); err != nil {
 				return err
 			}
 		}

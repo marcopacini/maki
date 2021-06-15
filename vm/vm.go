@@ -116,6 +116,12 @@ func (vm *VM) Run(fun *Function) error {
 			{
 				vm.array()
 			}
+		case OpAssert:
+			{
+				if err := vm.assert(); err != nil {
+					return err
+				}
+			}
 		case OpCall:
 			{
 				if err := vm.call(); err != nil {
@@ -488,6 +494,14 @@ func (vm *VM) array() {
 		values[i] = vm.pop()
 	}
 	vm.push(Value{ValueType: Array, Ptr: values})
+}
+
+func (vm *VM) assert() error {
+	value := vm.pop()
+	if !value.Boolean {
+		return fmt.Errorf("maki :: assertion failed at line %d", vm.getCurrentLine())
+	}
+	return nil
 }
 
 func (vm *VM) setGlobal(isIndexed bool) error {

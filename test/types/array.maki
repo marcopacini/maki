@@ -14,4 +14,4 @@ fun index() {
   return 1
 }
 a[index()] = 42
-print a[1] // expect 42
+print a[1] // expect: 42

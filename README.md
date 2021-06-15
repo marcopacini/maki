@@ -28,7 +28,6 @@ go build
 
 ## To Do
 
-- `assert` statement
 - `[var|let] { ... }` syntax
 - foreach syntax
 - Closure
