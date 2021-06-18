@@ -19,3 +19,19 @@ print b // expect: false
 print n // expect: 42
 print s // expect: Hello, Maki!
 print a // expect: [ 1, 2, nil ]
+
+var {
+    x = 12
+    y = nil
+}
+
+print x // expect: 12
+print y // expect: nil
+
+{
+    x = nil
+    y = 12
+}
+
+print x // expect: nil
+print y // expect: 12

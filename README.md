@@ -5,7 +5,7 @@ production ready and ~~probably~~ will never be.
 
 ```
 fun hello(name) {
-  print "Meowww, " + name +  "!"
+    print "Meowww, " + name +  "!"
 }
 hello("World") // print Meowww, World!
 ```
@@ -28,7 +28,6 @@ go build
 
 ## To Do
 
-- `[var|let] { ... }` syntax
 - foreach syntax
 - Closure
 - Class

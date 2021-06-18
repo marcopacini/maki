@@ -366,7 +366,7 @@ func (c *Compiler) statement() error {
 	case Var, Let:
 		{
 			_ = c.advance()
-			if err := c.variable(false); err != nil {
+			if err := c.listVariables(); err != nil {
 				return err
 			}
 		}
@@ -438,9 +438,27 @@ func (c *Compiler) unary(_ bool) error {
 	return nil
 }
 
-// variable declaration parser
-func (c *Compiler) variable(isArgument bool) error {
+// variable declarations parser
+func (c *Compiler) listVariables() error {
 	modifiable := c.previous.TokenType == Var
+
+	// multiple declarations
+	if c.match(LeftBrace) {
+		c.trim(NewLine)
+		for c.current.TokenType != RightBrace {
+			if err := c.variable(false, modifiable); err != nil {
+				return err
+			}
+			c.trim(NewLine)
+		}
+		return c.consume(RightBrace)
+	}
+
+	// single declaration
+	return c.variable(false, modifiable)
+}
+
+func (c *Compiler) variable(isArgument bool, modifiable bool) error {
 	identifier := c.current
 
 	if err := c.consume(Identifier); err != nil {
@@ -479,6 +497,7 @@ func (c *Compiler) variable(isArgument bool) error {
 	c.emitByte(vm.OpDefineGlobal)
 	c.WriteIdentifier(identifier.Lexeme, identifier.Line)
 	c.scope.addGlobal(identifier.Lexeme, modifiable)
+
 	return nil
 }
 
@@ -577,7 +596,7 @@ func (c *Compiler) funStatement() error {
 		c.Arity++
 		c.trim(Var)
 
-		if err := c.variable(true); err != nil {
+		if err := c.variable(true, true); err != nil {
 			return err
 		}
 
@@ -701,6 +720,7 @@ func (c *Compiler) forStatement() error {
 	if err := c.expression(false); err != nil {
 		return err
 	}
+	c.emitByte(vm.OpPop)
 	c.emitLoop(conditionLoop)
 
 	// body

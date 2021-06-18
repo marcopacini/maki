@@ -10,29 +10,6 @@ var {
     s = "Hello, Maki!"
 }
 
-// Class definition
-class Cat
-{
-    var Name { get, set }
-    var Breed
-}
-
-// Constructor definition
-fun Cat.new(name, breed)
-{
-    self.Name = name
-    self.Breed = breed
-}
-
-// Method definition
-fun Cat.Meow()
-{
-    return "meowww!"
-}
-
-var maki = Cat.new("Maki", 3)
-io.println(maki.Name + " says " + maki.Meow()) // print 'Maki says meowww!'
-
 // Function definition
 fun fib(n)
 {
@@ -62,3 +39,26 @@ var seq = [ 1 2 3 ]
 for var i = 0; i < seq.length; i++ {
     io.println(seq[i])
 }
+
+// Class definition (Not Yet Implemented)
+class Cat
+{
+    var Name { get, set }
+    var Breed
+}
+
+// Constructor definition (Not Yet Implemented)
+fun Cat.new(name, breed)
+{
+    self.Name = name
+    self.Breed = breed
+}
+
+// Method definition (Not Yet Implemented)
+fun Cat.Meow()
+{
+    return "meowww!"
+}
+
+var maki = Cat.new("Maki", 3)
+io.println(maki.Name + " says " + maki.Meow()) // print 'Maki says meowww!'

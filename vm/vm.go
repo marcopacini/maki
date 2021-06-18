@@ -555,6 +555,7 @@ func (vm *VM) setLocal(isIndexed bool) error {
 	} else {
 		vm.stack[address] = value
 	}
+	vm.push(value)
 	return nil
 }
 
